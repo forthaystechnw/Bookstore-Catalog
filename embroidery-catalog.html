@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embroidery Catalog — University Bookstore</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /*
+  ══════════════════════════════════════════════════════════════
+   HOW TO MANAGE YOUR CATALOG
+  ══════════════════════════════════════════════════════════════
+   1. Open your Google Sheet and fill in rows under these columns:
+      Item | Size Options | Color Options | Cost | Photo URL
+
+   • Item          — product name, e.g. "Staff Polo Shirt"
+   • Size Options  — comma-separated, e.g. "XS,S,M,L,XL,XXL"
+                     Leave blank if the item has no sizes (e.g. hats, bags)
+   • Color Options — comma-separated color names, e.g. "Navy,Black,Cardinal"
+   • Cost          — number only, e.g. 28
+   • Photo URL     — paste a public image URL from Google Drive or anywhere.
+                     For Google Drive: right-click file → Share → Anyone with link,
+                     then use: https://drive.google.com/uc?id=YOUR_FILE_ID
+
+   2. Make sure the sheet is published:
+      File → Share → Publish to web → Sheet1 → CSV → Publish
+
+   3. To connect order submissions to this same sheet, add a second tab
+      called "Orders" and deploy the Apps Script below.
+
+  ══════════════════════════════════════════════════════════════
+   TO CONNECT ORDER SUBMISSIONS → GOOGLE SHEETS
+  ══════════════════════════════════════════════════════════════
+   1. In your Sheet: Extensions → Apps Script
+   2. Paste the doPost() function at the bottom of this file
+   3. Deploy → New deployment → Web App → Anyone → Deploy
+   4. Copy the Web App URL and paste it below replacing the placeholder
+  ══════════════════════════════════════════════════════════════
+  */
+
+  :root {
+    --sheet-id: "1TrXu2AxiIOXjHAnccFb2NVdx9EQlMNTVUvfCXl00jmo";
+    --primary: #1a3a5c;
+    --accent: #c9973a;
+    --bg: #f5f2ed;
+    --surface: #ffffff;
+    --border: #e0dbd2;
+    --text: #1a1a1a;
+    --muted: #6b6560;
+    --light: #f0ece5;
+    --radius: 10px;
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: var(--primary); color: #fff; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-family: var(--font-display); font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+  .header-logo span { color: var(--accent); }
+  .header-tag { font-size: 11px; background: rgba(201,151,58,0.2); color: var(--accent); border: 1px solid rgba(201,151,58,0.4); border-radius: 20px; padding: 3px 10px; letter-spacing: 0.05em; }
+
+  .banner { background: #fffbf2; border-bottom: 1px solid #e8dfc8; padding: 10px 2rem; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; min-height: calc(100vh - 100px); }
+
+  aside { background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 1.25rem; }
+  .filter-heading { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .filter-section { margin-bottom: 1.5rem; }
+  .search-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .search-input:focus { border-color: var(--primary); }
+  #categoryFilters label { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; cursor: pointer; }
+  #categoryFilters input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
+
+  main { padding: 1.5rem; }
+  .catalog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px; }
+  .catalog-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--primary); }
+  .sort-row { display: flex; gap: 6px; }
+  .sort-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
+  .sort-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .card-img { background: var(--light); height: 140px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-img .placeholder { opacity: 0.25; }
+  .card-body { padding: 12px; }
+  .card-name { font-weight: 500; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+  .card-sub { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .est-label { font-size: 10px; color: var(--muted); }
+  .est-price { font-size: 16px; font-weight: 500; color: var(--primary); }
+  .card-btn { background: var(--primary); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-family: var(--font-body); cursor: pointer; white-space: nowrap; }
+  .card-btn:hover { background: #0f2540; }
+
+  .state-msg { text-align: center; padding: 3rem; color: var(--muted); font-size: 14px; }
+  .state-msg.error { color: #b91c1c; }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,35,0.5); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; position: sticky; top: 0; background: var(--surface); z-index: 1; border-radius: 14px 14px 0 0; }
+  .modal-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--primary); line-height: 1.2; }
+  .modal-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .close-btn { background: var(--light); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 16px; color: var(--muted); transition: background 0.15s; }
+  .close-btn:hover { background: var(--border); }
+  .modal-body { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+  input[type=text], input[type=email], input[type=tel], input[type=number], select, textarea {
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px;
+    font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none;
+    width: 100%; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; }
+  textarea { resize: vertical; min-height: 70px; }
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 0; }
+  .section-label { font-size: 12px; font-weight: 500; color: var(--primary); }
+
+  .custom-text-wrap { display: none; flex-direction: column; gap: 5px; }
+  .custom-text-wrap.visible { display: flex; }
+
+  .price-summary { background: var(--light); border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .price-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .price-val { font-size: 22px; font-weight: 500; color: var(--primary); }
+  .submit-btn { width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 14px; font-weight: 500; font-family: var(--font-body); cursor: pointer; transition: background 0.15s; }
+  .submit-btn:hover { background: #0f2540; }
+  .submit-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .confirm-screen { display: none; flex-direction: column; align-items: center; text-align: center; padding: 2.5rem 1.5rem; gap: 12px; }
+  .confirm-screen.show { display: flex; }
+  .confirm-icon { width: 56px; height: 56px; background: #d8f3dc; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .confirm-title { font-family: var(--font-display); font-size: 1.4rem; color: var(--primary); }
+  .confirm-body { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 340px; }
+  .confirm-ref { font-size: 12px; background: var(--light); border-radius: 6px; padding: 6px 14px; color: var(--muted); }
+  .confirm-close { margin-top: 8px; background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-size: 13px; font-family: var(--font-body); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
+    University <span>Bookstore</span>
+  </div>
+  <div class="header-tag">Custom Embroidery</div>
+  <span style="font-size:12px;color:rgba(255,255,255,0.6)">Faculty &amp; Staff Catalog</span>
+</header>
+
+<div class="banner">
+  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
+  Pricing shown is an estimate. Final price confirmed and payment collected in person at the bookstore when your order is ready.
+</div>
+
+<div class="layout">
+  <aside>
+    <div class="filter-section">
+      <div class="filter-heading">Search</div>
+      <input class="search-input" type="text" id="searchInput" placeholder="Search items..." oninput="renderGrid()">
+    </div>
+    <div class="filter-section">
+      <div class="filter-heading">Category</div>
+      <div id="categoryFilters"><label><input type="checkbox" checked disabled> All items</label></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="catalog-header">
+      <div class="catalog-title">Browse &amp; Request</div>
+      <div class="sort-row">
+        <button class="sort-btn active" onclick="setSort('default',this)">Default</button>
+        <button class="sort-btn" onclick="setSort('low',this)">Price: low</button>
+        <button class="sort-btn" onclick="setSort('high',this)">Price: high</button>
+      </div>
+    </div>
+    <div id="productGrid"><div class="state-msg">Loading catalog…</div></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div id="formView">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modalTitle"></div>
+          <div class="modal-subtitle" id="modalSub"></div>
+        </div>
+        <button class="close-btn" onclick="closeModal()" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="section-label">Your information</div>
+        <div class="form-row">
+          <div class="form-group"><label for="fname">Full name *</label><input type="text" id="fname" placeholder="Jane Smith"></div>
+          <div class="form-group"><label for="femail">Email *</label><input type="email" id="femail" placeholder="jsmith@university.edu"></div>
+          <div class="form-group"><label for="fdept">Department *</label><input type="text" id="fdept" placeholder="e.g. College of Engineering"></div>
+          <div class="form-group"><label for="fphone">Phone (optional)</label><input type="tel" id="fphone" placeholder="555-000-1234"></div>
+        </div>
+
+        <hr class="div">
+        <div class="section-label">Item options</div>
+
+        <div class="form-row">
+          <div class="form-group" id="colorGroup">
+            <label for="fcolor">Color</label>
+            <select id="fcolor"></select>
+          </div>
+          <div class="form-group" id="sizeGroup">
+            <label for="fsize">Size</label>
+            <select id="fsize"></select>
+          </div>
+          <div class="form-group">
+            <label for="flogo">Logo / design</label>
+            <select id="flogo" onchange="toggleCustomText()">
+              <option>University seal</option>
+              <option>Athletic dept. logo</option>
+              <option>Custom text</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fqty">Quantity</label>
+            <input type="number" id="fqty" value="1" min="1" max="999" oninput="updatePrice()">
+          </div>
+        </div>
+
+        <div class="custom-text-wrap form-group" id="customTextWrap">
+          <label for="fcustomtext">Text to embroider *</label>
+          <input type="text" id="fcustomtext" placeholder="e.g. Dr. Smith · Biology Dept.">
+        </div>
+
+        <div class="form-group full">
+          <label for="fnotes">Special instructions (optional)</label>
+          <textarea id="fnotes" placeholder="Placement preference, rush request, anything else…"></textarea>
+        </div>
+
+        <div class="price-summary">
+          <div>
+            <div style="font-size:13px;font-weight:500;">Estimated total</div>
+            <div class="price-note">No payment here · collected in person at pickup</div>
+          </div>
+          <div class="price-val" id="priceDisplay">~$0</div>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitRequest()">Submit request →</button>
+      </div>
+    </div>
+
+    <div class="confirm-screen" id="confirmView">
+      <div class="confirm-icon">
+        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#2d6a4f" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div class="confirm-title">Request submitted!</div>
+      <div class="confirm-body" id="confirmBody"></div>
+      <div class="confirm-ref" id="confirmRef"></div>
+      <button class="confirm-close" onclick="closeModal()">Back to catalog</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIGURATION ───────────────────────────────────────────────────
+const CATALOG_CSV = "https://docs.google.com/spreadsheets/d/1TrXu2AxiIOXjHAnccFb2NVdx9EQlMNTVUvfCXl00jmo/gviz/tq?tqx=out:csv&sheet=Catalog%20Information";
+const SUBMIT_URL  = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"; // paste after deploying Apps Script
+// ───────────────────────────────────────────────────────────────────
+
+const PLACEHOLDER_SVG = `<svg class="placeholder" width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 3.75H14M10 3.75a2.25 2.25 0 01-4.5 0M10 3.75H8.25a2.25 2.25 0 00-2.25 2.25v0M14 3.75a2.25 2.25 0 004.5 0M14 3.75H15.75A2.25 2.25 0 0118 6v0"/></svg>`;
+
+let products = [];
+let currentProduct = null;
+let sortMode = 'default';
+
+// ── LOAD FROM SHEET ─────────────────────────────────────────────────
+async function loadProducts() {
+  const url = CATALOG_CSV;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const csv = await res.text();
+    if (!csv || csv.trim().startsWith('<')) throw new Error('Sheet returned HTML instead of CSV — make sure the Sheet is shared as "Anyone with the link can view"');
+    const rows = parseCSV(csv);
+    if (rows.length < 2) {
+      showState('Your catalog sheet is empty. Add items in Google Sheets and refresh.');
+      return;
+    }
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const iItem  = headers.indexOf('item');
+    const iSize  = headers.indexOf('size options');
+    const iColor = headers.indexOf('color options');
+    const iCost  = headers.indexOf('cost');
+    const iPhoto = headers.indexOf('photo url');
+
+    products = rows.slice(1)
+      .filter(r => r[iItem] && r[iItem].trim())
+      .map((r, i) => ({
+        id: i,
+        name:   r[iItem]  ? r[iItem].trim()  : '',
+        sizes:  r[iSize]  ? r[iSize].trim().split(',').map(s=>s.trim()).filter(Boolean) : [],
+        colors: r[iColor] ? r[iColor].trim().split(',').map(c=>c.trim()).filter(Boolean) : [],
+        cost:   r[iCost]  ? parseFloat(r[iCost].replace(/[^0-9.]/g,'')) || 0 : 0,
+        photo:  r[iPhoto] ? r[iPhoto].trim() : '',
+      }));
+
+    if (!products.length) {
+      showState('No items found. Fill in the Item column in your Google Sheet and refresh.');
+      return;
+    }
+    buildCategoryFilters();
+    renderGrid();
+  } catch(e) {
+    showState(`Error: ${e.message}`, true);
+    console.error(e);
+  }
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') { if (inQ && text[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { row.push(cur); cur = ''; }
+    else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); rows.push(row); row = []; cur = '';
+    } else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+
+function showState(msg, isError) {
+  document.getElementById('productGrid').innerHTML =
+    `<div class="state-msg${isError?' error':''}">${msg}</div>`;
+}
+
+function driveUrl(url) {
+  if (!url) return '';
+  const m = url.match(/[-\w]{25,}/);
+  if (!m) return url;
+  const id = m[0];
+  // Use thumbnail endpoint which is reliably embeddable
+  return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+}
+
+function buildCategoryFilters() {
+  // Since the sheet doesn't have a category column, just show a count
+  const el = document.getElementById('categoryFilters');
+  el.innerHTML = `<label style="font-size:13px;color:var(--muted)">${products.length} item${products.length!==1?'s':''} in catalog</label>`;
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────
+function renderGrid() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = products.filter(p => p.name.toLowerCase().includes(search));
+  if (sortMode === 'low')  filtered.sort((a,b) => a.cost - b.cost);
+  if (sortMode === 'high') filtered.sort((a,b) => b.cost - a.cost);
+
+  if (!filtered.length) { showState('No items match your search.'); return; }
+
+  document.getElementById('productGrid').innerHTML = filtered.map(p => `
+    <div class="card" onclick="openModal(${p.id})">
+      <div class="card-img">
+        ${p.photo
+          ? `<img src="${driveUrl(p.photo)}" alt="${p.name}" onerror="this.parentNode.innerHTML='${PLACEHOLDER_SVG.replace(/"/g,"'")}'">`
+          : PLACEHOLDER_SVG}
+      </div>
+      <div class="card-body">
+        <div class="card-name">${p.name}</div>
+        <div class="card-sub">${[p.colors.length ? p.colors.length+' colors' : '', p.sizes.length ? p.sizes.join(' · ') : 'One size'].filter(Boolean).join(' · ')}</div>
+        <div class="card-footer">
+          <div>
+            <div class="est-label">Est. from</div>
+            <div class="est-price">${p.cost ? '$'+p.cost : 'Ask us'}</div>
+          </div>
+          <button class="card-btn">Request →</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setSort(mode, btn) {
+  sortMode = mode;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────
+function openModal(id) {
+  currentProduct = products.find(p => p.id === id);
+  document.getElementById('modalTitle').textContent = currentProduct.name;
+  document.getElementById('modalSub').textContent =
+    `Est. from ${currentProduct.cost ? '$'+currentProduct.cost : 'price TBD'} · payment collected at the bookstore`;
+
+  // Color select
+  const colorSel = document.getElementById('fcolor');
+  const colorGrp = document.getElementById('colorGroup');
+  if (currentProduct.colors.length) {
+    colorSel.innerHTML = currentProduct.colors.map(c=>`<option>${c}</option>`).join('');
+    colorGrp.style.display = '';
+  } else {
+    colorGrp.style.display = 'none';
+  }
+
+  // Size select
+  const sizeSel = document.getElementById('fsize');
+  const sizeGrp = document.getElementById('sizeGroup');
+  if (currentProduct.sizes.length) {
+    sizeSel.innerHTML = currentProduct.sizes.map(s=>`<option>${s}</option>`).join('');
+    sizeGrp.style.display = '';
+  } else {
+    sizeGrp.style.display = 'none';
+  }
+
+  // Reset fields
+  ['fname','femail','fdept','fphone','fnotes','fcustomtext'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('flogo').value = 'University seal';
+  document.getElementById('fqty').value = 1;
+  document.getElementById('customTextWrap').classList.remove('visible');
+  updatePrice();
+
+  document.getElementById('formView').style.display = '';
+  document.getElementById('confirmView').classList.remove('show');
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function toggleCustomText() {
+  document.getElementById('customTextWrap').classList.toggle(
+    'visible', document.getElementById('flogo').value === 'Custom text'
+  );
+}
+
+function updatePrice() {
+  const qty = Math.max(1, parseInt(document.getElementById('fqty').value)||1);
+  const est = currentProduct && currentProduct.cost ? '$'+(currentProduct.cost * qty) : 'TBD';
+  document.getElementById('priceDisplay').textContent = '~'+est;
+}
+
+// ── SUBMIT ───────────────────────────────────────────────────────────
+function genRef() {
+  return 'EMB-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+}
+
+async function submitRequest() {
+  const name  = document.getElementById('fname').value.trim();
+  const email = document.getElementById('femail').value.trim();
+  const dept  = document.getElementById('fdept').value.trim();
+  if (!name || !email || !dept) { alert('Please fill in your name, email, and department.'); return; }
+  const logo = document.getElementById('flogo').value;
+  if (logo === 'Custom text' && !document.getElementById('fcustomtext').value.trim()) {
+    alert("Please enter the text you'd like embroidered."); return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const ref = genRef();
+  const qty = document.getElementById('fqty').value;
+  const sizeEl = document.getElementById('sizeGroup');
+  const colorEl = document.getElementById('colorGroup');
+
+  const row = {
+    timestamp:  new Date().toLocaleString(),
+    name, email,
+    department: dept,
+    phone:      document.getElementById('fphone').value.trim(),
+    item:       currentProduct.name,
+    size:       sizeEl.style.display !== 'none' ? document.getElementById('fsize').value : 'N/A',
+    color:      colorEl.style.display !== 'none' ? document.getElementById('fcolor').value : 'N/A',
+    logo,
+    customText: logo === 'Custom text' ? document.getElementById('fcustomtext').value.trim() : '',
+    qty,
+    notes:      document.getElementById('fnotes').value.trim(),
+    estPrice:   currentProduct.cost ? '~$'+(currentProduct.cost * parseInt(qty)) : 'TBD',
+    ref
+  };
+
+  if (SUBMIT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+    try {
+      await fetch(SUBMIT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(row) });
+    } catch(e) { console.warn('Submission error:', e); }
+  } else {
+    console.log('Sheet URL not set yet. Data:', row);
+  }
+
+  btn.disabled = false; btn.textContent = 'Submit request →';
+
+  document.getElementById('confirmBody').innerHTML =
+    `Thanks, ${name.split(' ')[0]}! The bookstore will contact you at <strong>${email}</strong> when your order is ready for pickup and payment.`;
+  document.getElementById('confirmRef').textContent = `Reference # ${ref} · Est. ready in 7–10 business days`;
+  document.getElementById('formView').style.display = 'none';
+  document.getElementById('confirmView').classList.add('show');
+}
+
+loadProducts();
+</script>
+
+<!--
+════════════════════════════════════════════════════════════════════════
+  APPS SCRIPT — paste into Extensions → Apps Script in your Google Sheet
+  Then: Deploy → New deployment → Web App → Anyone → Deploy
+  Copy the URL and paste it into SUBMIT_URL above.
+════════════════════════════════════════════════════════════════════════
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Orders') || ss.insertSheet('Orders');
+  var data = JSON.parse(e.postData.contents);
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Timestamp','Name','Email','Department','Phone',
+      'Item','Size','Color','Logo / Design','Custom Text',
+      'Qty','Notes','Est. Price','Ref #','Status']);
+  }
+
+  sheet.appendRow([
+    data.timestamp, data.name, data.email, data.department, data.phone,
+    data.item, data.size, data.color, data.logo, data.customText,
+    data.qty, data.notes, data.estPrice, data.ref, 'New'
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+════════════════════════════════════════════════════════════════════════
+-->
+</body>
+</html>
