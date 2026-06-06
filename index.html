@@ -70,8 +70,8 @@
   .sort-row { display: flex; gap: 6px; }
   .sort-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
   .sort-btn.active { background: var(--primary); color: #1a1a1a; border-color: var(--primary); }
-  .grid { display: flex; flex-wrap: wrap; gap: 1rem; align-content: flex-start; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; flex: 1 1 180px; max-width: 220px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 1rem; align-content: flex-start; align-items: flex-start; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; width: 200px; flex: 0 0 200px; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
   .card-img { background: var(--light); height: 160px; overflow: hidden; position: relative; }
   .card-img img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; background: var(--light); padding: 8px; }
