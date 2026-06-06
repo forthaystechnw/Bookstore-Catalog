@@ -331,6 +331,7 @@ const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSd6zRou_TG4e1g4NCDMV
 // entry.682453688  = Custom Text
 // entry.218563050  = Quantity
 // entry.1728681119 = Special Instructions
+// entry.415477768  = Placement
 // entry.2067392112 = Estimated Price
 // ───────────────────────────────────────────────────────────────────
 
@@ -636,7 +637,8 @@ function submitRequest() {
     'entry.1332801338': logo,
     'entry.682453688':  custom,
     'entry.218563050':  qty,
-    'entry.1728681119': [placement ? 'Placement: ' + placement : '', notes].filter(Boolean).join(' | '),
+    'entry.415477768':  placement,
+    'entry.1728681119': notes,
     'entry.2067392112': est,
   });
 
