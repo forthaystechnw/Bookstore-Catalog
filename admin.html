@@ -494,27 +494,41 @@ function doPost(e) {
   var sheet = ss.getSheetByName('Catalog Information');
   var data = JSON.parse(e.postData.contents);
 
-  var COLS = ['Item','Gender','Type','Size Options','Color Options','Color Images',
-              'Logo Options','Logo Images','Placement Options','Cost','Photo URL'];
+  // Map field names to data values
+  var fieldMap = {
+    'Item':               data.name,
+    'Gender':             data.gender,
+    'Type':               data.type,
+    'Size Options':       data.sizes,
+    'Color Options':      data.colors,
+    'Color Images':       data.colorImgs,
+    'Logo Options':       data.logoOpts,
+    'Logo Images':        data.logoImgs,
+    'Placement Options':  data.placements,
+    'Cost':               data.cost,
+    'Photo URL':          data.photo
+  };
 
-  // Ensure header row exists
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(COLS);
-  }
-
-  var rowData = [
-    data.name, data.gender, data.type, data.sizes, data.colors, data.colorImgs,
-    data.logoOpts, data.logoImgs, data.placements, data.cost, data.photo
-  ];
-
-  if (data.action === 'append') {
-    sheet.appendRow(rowData);
-  } else if (data.action === 'update' && data.rowIdx) {
-    for (var i = 0; i < rowData.length; i++) {
-      sheet.getRange(data.rowIdx, i + 1).setValue(rowData[i]);
-    }
-  } else if (data.action === 'delete' && data.rowIdx) {
+  if (data.action === 'delete' && data.rowIdx) {
     sheet.deleteRow(data.rowIdx);
+  } else {
+    // Get actual header row to find column positions dynamically
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    if (data.action === 'append') {
+      // Build row in the exact order of existing headers
+      var newRow = headers.map(function(h) {
+        return fieldMap.hasOwnProperty(h) ? fieldMap[h] : '';
+      });
+      sheet.appendRow(newRow);
+    } else if (data.action === 'update' && data.rowIdx) {
+      // Update each column by finding its position from the header
+      headers.forEach(function(h, i) {
+        if (fieldMap.hasOwnProperty(h)) {
+          sheet.getRange(data.rowIdx, i + 1).setValue(fieldMap[h]);
+        }
+      });
+    }
   }
 
   return ContentService
