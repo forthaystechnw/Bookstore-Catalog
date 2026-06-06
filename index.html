@@ -731,49 +731,64 @@ function renderCart() {
 }
 
 // ── SUBMIT ALL ───────────────────────────────────────────────────────
-function submitAll() {
+async function submitAll() {
   const name  = document.getElementById('cname').value.trim();
   const email = document.getElementById('cemail').value.trim();
   const dept  = document.getElementById('cdept').value.trim();
   if (!name || !email || !dept) { alert('Please fill in your name, email, and department before submitting.'); return; }
 
   const phone = document.getElementById('cphone').value.trim();
-
-  const btn = document.getElementById('submitAllBtn');
+  const btn   = document.getElementById('submitAllBtn');
   btn.disabled = true;
-  btn.textContent = `Opening ${cart.length} form${cart.length>1?'s':''}…`;
+  btn.textContent = `Submitting ${cart.length} item${cart.length>1?'s':''}…`;
 
-  // Open one pre-filled Google Form per cart item
-  cart.forEach((item, idx) => {
-    setTimeout(() => {
-      const params = new URLSearchParams({
-        'entry.2063443297': name,
-        'entry.2045502891': email,
-        'entry.1211389596': dept,
-        'entry.649660626':  phone,
-        'entry.1149247074': item.name,
-        'entry.351137844':  item.size,
-        'entry.1594216950': item.color,
-        'entry.1332801338': item.logo,
-        'entry.682453688':  item.customText,
-        'entry.218563050':  item.qty,
-        'entry.415477768':  item.placement,
-        'entry.1728681119': item.notes,
-        'entry.2067392112': item.est,
-      });
-      window.open(FORM_BASE + '?' + params.toString(), '_blank');
-    }, idx * 800); // stagger 800ms apart so browser doesn't block popups
-  });
+  // Submit each cart item as a separate row in the Requests sheet
+  const submissions = cart.map(item => fetch(SUBMIT_URL, {
+    method: 'POST',
+    mode:   'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action:     'order',
+      name,
+      email,
+      department: dept,
+      phone,
+      item:       item.name,
+      size:       item.size,
+      color:      item.color,
+      logo:       item.logo,
+      customText: item.customText,
+      placement:  item.placement,
+      qty:        item.qty,
+      notes:      item.notes,
+      estPrice:   item.est,
+    })
+  }).catch(err => console.warn('Submission error:', err)));
 
-  setTimeout(() => {
-    cart = [];
-    updateCartBadge();
-    btn.disabled = false;
-    btn.textContent = 'Submit all requests →';
-    closeCart();
-    // Clear info fields
-    ['cname','cemail','cdept','cphone'].forEach(id=>document.getElementById(id).value='');
-  }, cart.length * 800 + 200);
+  await Promise.all(submissions);
+
+  // Show confirmation in cart drawer
+  const cartBody   = document.getElementById('cartBody');
+  const cartFooter = document.getElementById('cartFooter');
+  cartFooter.style.display = 'none';
+  cartBody.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:2.5rem 1rem;gap:12px">
+      <div style="width:56px;height:56px;background:#d8f3dc;border-radius:50%;display:flex;align-items:center;justify-content:center">
+        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#2d6a4f" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div style="font-family:var(--font-display);font-size:1.3rem;font-weight:700">Requests submitted!</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        Thanks, ${name.split(' ')[0]}! Your ${cart.length} item${cart.length>1?'s have':' has'} been sent to the bookstore.<br>
+        They'll contact you at <strong>${email}</strong> when your order is ready for pickup and payment.
+      </div>
+      <button onclick="closeCart()" style="margin-top:8px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-family:var(--font-body);cursor:pointer">Done</button>
+    </div>`;
+
+  cart = [];
+  updateCartBadge();
+  btn.disabled = false;
+  btn.textContent = 'Submit all requests →';
+  ['cname','cemail','cdept','cphone'].forEach(id => document.getElementById(id).value = '');
 }
 
 loadProducts();
