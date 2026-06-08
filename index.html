@@ -382,6 +382,8 @@ let sortMode = 'default';
 let cart = [];
 let activeGender = '';
 let activeType = '';
+let activeColor = '';
+let activeSize = '';
 
 // ── LOAD PRODUCTS ────────────────────────────────────────────────────
 async function loadProducts() {
@@ -437,6 +439,33 @@ function buildFilters() {
     html += types.map(t=>`<button class="filter-chip" onclick="setType('${t}',this)">${t}</button>`).join('');
     html += '</div><div style="height:12px"></div>';
   }
+  // Colors — flatten all colors across all products, dedupe
+  const allColors = [...new Set(products.flatMap(p => p.colors.split(',').map(c=>c.trim()).filter(Boolean)))].sort();
+  if (allColors.length) {
+    html += '<div class="filter-heading">Color</div><div class="filter-chips">';
+    html += `<button class="filter-chip active" onclick="setColor('',this)">All</button>`;
+    html += allColors.map(c=>`<button class="filter-chip" onclick="setColor('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
+    html += '</div><div style="height:12px"></div>';
+  }
+
+  // Sizes — flatten all sizes across all products, dedupe, sort by size order
+  const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL'];
+  const allSizes = [...new Set(products.flatMap(p => p.sizes.split(',').map(s=>s.trim()).filter(Boolean)))]
+    .sort((a,b) => {
+      const ai = sizeOrder.indexOf(a.toUpperCase());
+      const bi = sizeOrder.indexOf(b.toUpperCase());
+      if (ai === -1 && bi === -1) return a.localeCompare(b);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+  if (allSizes.length) {
+    html += '<div class="filter-heading">Size</div><div class="filter-chips">';
+    html += `<button class="filter-chip active" onclick="setSize('',this)">All</button>`;
+    html += allSizes.map(s=>`<button class="filter-chip" onclick="setSize('${s}',this)">${s}</button>`).join('');
+    html += '</div><div style="height:12px"></div>';
+  }
+
   html += `<div style="font-size:12px;color:var(--muted);margin-top:4px">${products.length} item${products.length!==1?'s':''} total</div>`;
   aside.innerHTML = html;
 }
@@ -450,6 +479,20 @@ function setGender(val, btn) {
 
 function setType(val, btn) {
   activeType = val;
+  btn.closest('.filter-chips').querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function setColor(val, btn) {
+  activeColor = val;
+  btn.closest('.filter-chips').querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function setSize(val, btn) {
+  activeSize = val;
   btn.closest('.filter-chips').querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderGrid();
@@ -481,7 +524,14 @@ function driveUrl(url) {
 // ── RENDER GRID ──────────────────────────────────────────────────────
 function renderGrid() {
   const search = document.getElementById('searchInput').value.toLowerCase();
-  let list = products.filter(p => p.name.toLowerCase().includes(search) && (!activeGender || p.gender===activeGender) && (!activeType || p.type===activeType));
+  let list = products.filter(p => {
+    if (!p.name.toLowerCase().includes(search)) return false;
+    if (activeGender && p.gender !== activeGender) return false;
+    if (activeType   && p.type   !== activeType)   return false;
+    if (activeColor  && !p.colors.split(',').map(c=>c.trim()).includes(activeColor)) return false;
+    if (activeSize   && !p.sizes.split(',').map(s=>s.trim()).includes(activeSize))   return false;
+    return true;
+  });
   if (sortMode==='low') list.sort((a,b)=>a.cost-b.cost);
   if (sortMode==='high') list.sort((a,b)=>b.cost-a.cost);
   if (!list.length) { showState('No items match your search.'); return; }
