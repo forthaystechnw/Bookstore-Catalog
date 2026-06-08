@@ -440,7 +440,7 @@ function buildFilters() {
     html += '</div><div style="height:12px"></div>';
   }
   // Colors — flatten all colors across all products, dedupe
-  const allColors = [...new Set(products.flatMap(p => p.colors.split(',').map(c=>c.trim()).filter(Boolean)))].sort();
+  const allColors = [...new Set(products.flatMap(p => p.colors))].filter(Boolean).sort();
   if (allColors.length) {
     html += '<div class="filter-heading">Color</div><div class="filter-chips">';
     html += `<button class="filter-chip active" onclick="setColor('',this)">All</button>`;
@@ -450,7 +450,7 @@ function buildFilters() {
 
   // Sizes — flatten all sizes across all products, dedupe, sort by size order
   const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL'];
-  const allSizes = [...new Set(products.flatMap(p => p.sizes.split(',').map(s=>s.trim()).filter(Boolean)))]
+  const allSizes = [...new Set(products.flatMap(p => p.sizes))].filter(Boolean)
     .sort((a,b) => {
       const ai = sizeOrder.indexOf(a.toUpperCase());
       const bi = sizeOrder.indexOf(b.toUpperCase());
@@ -528,8 +528,8 @@ function renderGrid() {
     if (!p.name.toLowerCase().includes(search)) return false;
     if (activeGender && p.gender !== activeGender) return false;
     if (activeType   && p.type   !== activeType)   return false;
-    if (activeColor  && !p.colors.split(',').map(c=>c.trim()).includes(activeColor)) return false;
-    if (activeSize   && !p.sizes.split(',').map(s=>s.trim()).includes(activeSize))   return false;
+    if (activeColor  && !p.colors.includes(activeColor)) return false;
+    if (activeSize   && !p.sizes.includes(activeSize))   return false;
     return true;
   });
   if (sortMode==='low') list.sort((a,b)=>a.cost-b.cost);
