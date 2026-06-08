@@ -53,7 +53,7 @@
 
   /* ── LAYOUT ── */
   .layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; min-height: calc(100vh - 136px); }
-  aside { background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 1.25rem; }
+  aside { background: var(--surface); border-right: 1px solid var(--border); padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 6px; }
 
   @media (max-width: 700px) {
     .layout { grid-template-columns: 1fr; }
@@ -66,12 +66,21 @@
     main { padding: 1rem; }
     .catalog-header { margin-bottom: 0.75rem; }
   }
-  .filter-heading { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-  .filter-section { margin-bottom: 1.5rem; }
+  .filter-heading { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
   .search-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
   .search-input:focus { border-color: var(--primary); }
   .filter-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: transparent; font-size: 12px; font-family: var(--font-body); color: var(--muted); cursor: pointer; margin: 2px; transition: all 0.15s; }
   .filter-chip.active { background: var(--primary); border-color: var(--primary); color: #1a1a1a; font-weight: 600; }
+
+  /* Collapsible filter sections */
+  .filter-section { margin-bottom: 4px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .filter-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: none; border: none; font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+  .filter-toggle:hover { background: var(--light); }
+  .filter-toggle-arrow { font-size: 10px; transition: transform 0.2s; }
+  .filter-toggle.open .filter-toggle-arrow { transform: rotate(180deg); }
+  .filter-body { padding: 6px 10px 10px; display: none; }
+  .filter-body.open { display: block; }
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .filter-chips { display: flex; flex-wrap: wrap; gap: 2px; }
   .card-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: var(--light); color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 
@@ -425,52 +434,62 @@ async function loadProducts() {
 }
 
 function buildFilters() {
-  const genders = [...new Set(products.map(p=>p.gender).filter(Boolean))];
-  const types   = [...new Set(products.map(p=>p.type).filter(Boolean))];
-  const aside   = document.getElementById('categoryFilters');
+  const genders   = [...new Set(products.map(p=>p.gender).filter(Boolean))];
+  const types     = [...new Set(products.map(p=>p.type).filter(Boolean))];
+  const allColors = [...new Set(products.flatMap(p=>p.colors))].filter(Boolean).sort();
+  const sizeOrder = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL'];
+  const allSizes  = [...new Set(products.flatMap(p=>p.sizes))].filter(Boolean).sort((a,b)=>{
+    const ai = sizeOrder.indexOf(a.toUpperCase());
+    const bi = sizeOrder.indexOf(b.toUpperCase());
+    if (ai===-1&&bi===-1) return a.localeCompare(b);
+    if (ai===-1) return 1; if (bi===-1) return -1;
+    return ai-bi;
+  });
+  const aside = document.getElementById('categoryFilters');
+
+  function makeSection(label, id, chips) {
+    return `
+      <div class="filter-section">
+        <button class="filter-toggle open" onclick="toggleFilter(this)" aria-expanded="true">
+          ${label} <span class="filter-toggle-arrow">▼</span>
+        </button>
+        <div class="filter-body open">
+          <div class="filter-chips" id="chips-${id}">${chips}</div>
+        </div>
+      </div>`;
+  }
 
   let html = '';
   if (genders.length) {
-    html += '<div class="filter-heading" style="margin-top:0">Gender</div><div class="filter-chips">';
-    html += `<button class="filter-chip active" onclick="setGender('',this)">All</button>`;
-    html += genders.map(g=>`<button class="filter-chip" onclick="setGender('${g}',this)">${g}</button>`).join('');
-    html += '</div><div style="height:12px"></div>';
+    const chips = `<button class="filter-chip active" onclick="setGender('',this)">All</button>`
+      + genders.map(g=>`<button class="filter-chip" onclick="setGender('${g}',this)">${g}</button>`).join('');
+    html += makeSection('Gender', 'gender', chips);
   }
   if (types.length) {
-    html += '<div class="filter-heading">Type</div><div class="filter-chips">';
-    html += `<button class="filter-chip active" onclick="setType('',this)">All</button>`;
-    html += types.map(t=>`<button class="filter-chip" onclick="setType('${t}',this)">${t}</button>`).join('');
-    html += '</div><div style="height:12px"></div>';
+    const chips = `<button class="filter-chip active" onclick="setType('',this)">All</button>`
+      + types.map(t=>`<button class="filter-chip" onclick="setType('${t}',this)">${t}</button>`).join('');
+    html += makeSection('Type', 'type', chips);
   }
-  // Colors — flatten all colors across all products, dedupe
-  const allColors = [...new Set(products.flatMap(p => p.colors))].filter(Boolean).sort();
   if (allColors.length) {
-    html += '<div class="filter-heading">Color</div><div class="filter-chips">';
-    html += `<button class="filter-chip active" onclick="setColor('',this)">All</button>`;
-    html += allColors.map(c=>`<button class="filter-chip" onclick="setColor('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
-    html += '</div><div style="height:12px"></div>';
+    const chips = `<button class="filter-chip active" onclick="setColor('',this)">All</button>`
+      + allColors.map(c=>`<button class="filter-chip" onclick="setColor('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
+    html += makeSection('Color', 'color', chips);
   }
-
-  // Sizes — flatten all sizes across all products, dedupe, sort by size order
-  const sizeOrder = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL'];
-  const allSizes = [...new Set(products.flatMap(p => p.sizes))].filter(Boolean)
-    .sort((a,b) => {
-      const ai = sizeOrder.indexOf(a.toUpperCase());
-      const bi = sizeOrder.indexOf(b.toUpperCase());
-      if (ai === -1 && bi === -1) return a.localeCompare(b);
-      if (ai === -1) return 1;
-      if (bi === -1) return -1;
-      return ai - bi;
-    });
   if (allSizes.length) {
-    html += '<div class="filter-heading">Size</div><div class="filter-chips">';
-    html += `<button class="filter-chip active" onclick="setSize('',this)">All</button>`;
-    html += allSizes.map(s=>`<button class="filter-chip" onclick="setSize('${s}',this)">${s}</button>`).join('');
-    html += '</div><div style="height:12px"></div>';
+    const chips = `<button class="filter-chip active" onclick="setSize('',this)">All</button>`
+      + allSizes.map(s=>`<button class="filter-chip" onclick="setSize('${s}',this)">${s}</button>`).join('');
+    html += makeSection('Size', 'size', chips);
   }
 
-  html += `<div style="font-size:12px;color:var(--muted);margin-top:4px">${products.length} item${products.length!==1?'s':''} total</div>`;
+  html += `<div style="font-size:12px;color:var(--muted);margin-top:8px;padding:0 4px">${products.length} item${products.length!==1?'s':''} total</div>`;
   aside.innerHTML = html;
+}
+
+function toggleFilter(btn) {
+  btn.classList.toggle('open');
+  const body = btn.nextElementSibling;
+  body.classList.toggle('open');
+  btn.setAttribute('aria-expanded', body.classList.contains('open'));
 }
 
 function setGender(val, btn) {
