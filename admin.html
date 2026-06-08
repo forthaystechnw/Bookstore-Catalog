@@ -301,7 +301,7 @@
 // ── CONFIG ───────────────────────────────────────────────────────────
 const SHEET_ID   = '1TrXu2AxiIOXjHAnccFb2NVdx9EQlMNTVUvfCXl00jmo';
 const SHEET_NAME = 'Catalog Information';
-const CATALOG_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+const CATALOG_JSON = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
 // ── NOTE: To enable saving, deploy Apps Script (see bottom of file) ──
 const ADMIN_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSKvjh9zyADWKbwp7sT1w5-S7ayLfcSDY621M9NMU64DOWCArXN1wO-A3zM0Wctngs/exec';
@@ -344,32 +344,45 @@ if (sessionStorage.getItem('admin_auth') === '1') {
 async function loadItems() {
   document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">Loading items…</td></tr>';
   try {
-    const res = await fetch(CATALOG_CSV);
-    const buffer = await res.arrayBuffer();
-    const csv = new TextDecoder('utf-8').decode(buffer);
-    if (!csv || csv.trim().startsWith('<')) throw new Error('Could not load sheet');
-    const rows = parseCSV(csv);
-    const h = rows[0].map(x => x.trim().toLowerCase());
-    const col = k => h.indexOf(k);
+    const res = await fetch(CATALOG_JSON);
+    let text = await res.text();
+    text = text.replace(/^.*?\(/, '').replace(/\);?\s*$/, '');
+    const json = JSON.parse(text);
+    const table = json.table;
+    if (!table || !table.rows || !table.rows.length) {
+      document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found.</td></tr>';
+      return;
+    }
 
-    products = rows.slice(1).filter(r => r[col('item')] && r[col('item')].trim()).map((r, i) => ({
-      rowIdx:    i + 2, // 1-indexed, +1 for header
-      name:      r[col('item')]              || '',
-      gender:    col('gender')      >= 0 ? (r[col('gender')]            || '') : '',
-      type:      col('type')        >= 0 ? (r[col('type')]              || '') : '',
-      sizes:     col('size options')>= 0 ? (r[col('size options')]      || '') : '',
-      colors:    col('color options')>=0 ? (r[col('color options')]     || '') : '',
-      cost:      col('cost')        >= 0 ? (r[col('cost')]              || '') : '',
-      photo:     col('photo url')   >= 0 ? (r[col('photo url')]         || '') : '',
-      colorImgs: col('color images')>= 0 ? (r[col('color images')]      || '') : '',
-      logoOpts:  col('logo options')>= 0 ? (r[col('logo options')]      || '') : '',
-      logoImgs:  col('logo images') >= 0 ? (r[col('logo images')]       || '') : '',
-      placements:col('placement options')>=0?(r[col('placement options')]||'') : '',
-    }));
+    const headers = table.cols.map(c => (c.label || '').trim().toLowerCase());
+    const col = k => headers.indexOf(k);
+    const getVal = (row, k) => {
+      const i = col(k);
+      if (i < 0 || !row.c[i]) return '';
+      return row.c[i].v !== null && row.c[i].v !== undefined ? String(row.c[i].v).trim() : '';
+    };
+
+    products = table.rows
+      .filter(row => row.c && getVal(row, 'item'))
+      .map((row, i) => ({
+        rowIdx:     i + 2,
+        name:       getVal(row, 'item'),
+        gender:     getVal(row, 'gender'),
+        type:       getVal(row, 'type'),
+        sizes:      getVal(row, 'size options'),
+        colors:     getVal(row, 'color options'),
+        cost:       getVal(row, 'cost'),
+        photo:      getVal(row, 'photo url'),
+        colorImgs:  getVal(row, 'color images'),
+        logoOpts:   getVal(row, 'logo options'),
+        logoImgs:   getVal(row, 'logo images'),
+        placements: getVal(row, 'placement options'),
+      }));
 
     renderTable();
   } catch(e) {
-    document.getElementById('itemsBody').innerHTML = `<tr class="loading-row"><td colspan="8" style="color:#b91c1c">Error loading items: ${e.message}</td></tr>`;
+    document.getElementById('itemsBody').innerHTML = `<tr class="loading-row"><td colspan="8" style="color:#b91c1c">Error: ${e.message}</td></tr>`;
+    console.error(e);
   }
 }
 
