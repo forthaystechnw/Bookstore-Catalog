@@ -212,7 +212,17 @@
         </div>
         <div class="import-status" id="importStatus">Paste an S&S URL to auto-fill name, colors, sizes and images. All fields can still be edited after importing.</div>
         <div style="border-top:1px solid #e8dfc8;margin-top:6px;padding-top:8px">
-          <div class="import-bar-title" style="margin-bottom:4px">📦 SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(fill in manually — right-click color images on sanmar.com to copy URL)</span></div>
+          <div class="import-bar-title" style="margin-bottom:6px">📦 Import from SanMar — paste one URL per color</div>
+          <div class="import-row" style="margin-bottom:6px">
+            <input class="import-input" type="text" id="sanmarUrl" placeholder="https://www.sanmar.com/p/27873_Navy">
+            <button class="import-btn" onclick="addSanmarColor()">Add color</button>
+          </div>
+          <div id="sanmarColors" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;min-height:10px"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="import-btn" onclick="applySanmarColors()" style="background:#1a1a1a;color:#fff">Apply to form →</button>
+            <button class="import-btn" onclick="clearSanmarColors()" style="background:var(--light);color:var(--muted)">Clear</button>
+            <span class="import-status" id="sanmarStatus"></span>
+          </div>
         </div>
       </div>
       <div class="form-grid">
@@ -440,8 +450,90 @@ function openEditor(idx) {
   // Reset import bar
   document.getElementById('importUrl').value = '';
   setImportStatus('Paste an S&S product URL above to auto-fill name, colors, sizes and images.', '');
+  clearSanmarColors();
 }
 
+// ── SANMAR COLOR IMPORTER ─────────────────────────────────────────────
+let sanmarColorList = [];
+
+async function addSanmarColor() {
+  const input = document.getElementById('sanmarUrl');
+  const url = input.value.trim();
+  if (!url || !url.includes('sanmar.com')) {
+    setSanmarStatus('Please paste a sanmar.com product URL.', 'error'); return;
+  }
+  setSanmarStatus('Fetching color info...', '');
+  try {
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    const text = await res.text();
+
+    // Extract og:image (model shot)
+    const imgMatch = text.match(/meta-og:image:\s*(.+)/);
+    let imageUrl = imgMatch ? imgMatch[1].trim() : '';
+    // Fix double-protocol
+    imageUrl = imageUrl.replace(/^https?:\/\/[^/]*\/\/(cdn)/, 'https://$1');
+
+    // Try to get the flat product image (no model) by swapping ModelFront → ProductFront
+    if (imageUrl.includes('ModelFront')) {
+      const flatUrl = imageUrl.replace(/ModelFront\d*/g, 'ProductFront');
+      try {
+        const testRes = await fetch('https://corsproxy.io/?' + encodeURIComponent(flatUrl), {method:'HEAD'});
+        if (testRes.ok) imageUrl = flatUrl;
+      } catch(e) { /* fall back to model shot */ }
+    }
+
+    // Extract color from URL slug
+    const parts = url.split('_');
+    let colorName = parts.length > 1 ? parts[parts.length-1].replace(/\?.*/,'').replace(/([A-Z])/g,' $1').trim() : 'Color ' + (sanmarColorList.length+1);
+
+    // Try to get cleaner color name from page
+    const colorMeta = text.match(/name="description"[^>]*content="[^"]*in\s+([A-Za-z\s]+)"/i);
+    if (colorMeta) colorName = colorMeta[1].trim();
+
+    if (!imageUrl) throw new Error('Could not find image on this page.');
+
+    sanmarColorList.push({ name: colorName, imageUrl });
+    renderSanmarColors();
+    setSanmarStatus('Added: ' + colorName, 'success');
+    input.value = '';
+    input.focus();
+  } catch(e) {
+    setSanmarStatus('Error: ' + e.message, 'error');
+  }
+}
+
+function renderSanmarColors() {
+  const container = document.getElementById('sanmarColors');
+  if (!sanmarColorList.length) { container.innerHTML = ''; return; }
+  container.innerHTML = sanmarColorList.map((c, i) => `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;position:relative">
+      <img src="${c.imageUrl}" style="width:60px;height:60px;object-fit:contain;border-radius:6px;background:var(--light);border:1px solid var(--border)">
+      <span style="font-size:10px;color:var(--muted);max-width:64px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.name}">${c.name}</span>
+      <button onclick="removeSanmarColor(${i})" style="position:absolute;top:-4px;right:-4px;background:#b91c1c;color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1">x</button>
+    </div>`).join('');
+}
+
+function removeSanmarColor(i) { sanmarColorList.splice(i,1); renderSanmarColors(); }
+
+function applySanmarColors() {
+  if (!sanmarColorList.length) { setSanmarStatus('Add at least one color first.','error'); return; }
+  document.getElementById('fColors').value = sanmarColorList.map(c=>c.name).join(',');
+  document.getElementById('fColorImages').value = sanmarColorList.map(c=>c.imageUrl).join(',');
+  document.getElementById('fPhoto').value = sanmarColorList[0].imageUrl;
+  setSanmarStatus('Applied ' + sanmarColorList.length + ' color(s) to form!', 'success');
+}
+
+function clearSanmarColors() { sanmarColorList=[]; renderSanmarColors(); setSanmarStatus('',''); }
+
+function setSanmarStatus(msg, type) {
+  const el = document.getElementById('sanmarStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'import-status' + (type ? ' '+type : '');
+}
+
+// ── S&S IMPORT ────────────────────────────────────────────────────────
 async function importFromSS() {
   const url = document.getElementById('importUrl').value.trim();
   if (!url || !url.includes('ssactivewear.com')) {
