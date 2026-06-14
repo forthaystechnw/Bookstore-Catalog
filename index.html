@@ -874,6 +874,17 @@ async function submitAll() {
   ['cname','cemail','cdept','cphone'].forEach(id => document.getElementById(id).value = '');
 }
 
+// ── SECRET TIGER KEY ─────────────────────────────────────────────────
+(function() {
+  const secret = 'TIGER';
+  let typed = '';
+  document.addEventListener('keydown', e => {
+    typed += e.key.toUpperCase();
+    if (typed.length > secret.length) typed = typed.slice(-secret.length);
+    if (typed === secret) window.location.href = 'admin.html';
+  });
+})();
+
 loadProducts();
 </script>
 </body>
