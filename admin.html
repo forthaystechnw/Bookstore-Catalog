@@ -24,8 +24,7 @@
     --success-bg: #d8f3dc;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font-body); background: var(--bg); color: var(--text); height: 100vh; }
-  #adminShell { height: 100vh; overflow: hidden; display: none; flex-direction: column; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--text); }
 
   /* ── LOGIN ── */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
@@ -43,7 +42,8 @@
   .login-error { background: var(--danger-bg); color: var(--danger); font-size: 13px; padding: 8px 12px; border-radius: 8px; display: none; text-align: center; }
 
   /* ── ADMIN SHELL ── */
-  #adminShell { display: none; }
+  #adminShell { display: none; height: 100vh; overflow: hidden; flex-direction: column; }
+  #adminShell.visible { display: flex; }
   header { background: #fbbe00; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 70px; position: sticky; top: 0; z-index: 100; }
   .header-logo img { height: 52px; width: auto; object-fit: contain; }
   .header-right { display: flex; align-items: center; gap: 12px; }
@@ -347,7 +347,7 @@ function doLogin() {
   const p = document.getElementById('loginPass').value;
   if (u === CREDS.user && p === CREDS.pass) {
     document.getElementById('loginWrap').style.display = 'none';
-    document.getElementById('adminShell').style.display = 'flex';
+    document.getElementById('adminShell').classList.add('visible');
     sessionStorage.setItem('admin_auth', '1');
     loadItems();
   } else {
@@ -357,7 +357,7 @@ function doLogin() {
 
 function doLogout() {
   sessionStorage.removeItem('admin_auth');
-  document.getElementById('adminShell').style.display = 'none';
+  document.getElementById('adminShell').classList.remove('visible');
   document.getElementById('loginWrap').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -366,7 +366,7 @@ function doLogout() {
 // Auto-login if session still active
 if (sessionStorage.getItem('admin_auth') === '1') {
   document.getElementById('loginWrap').style.display = 'none';
-  document.getElementById('adminShell').style.display = 'flex';
+  document.getElementById('adminShell').classList.add('visible');
   loadItems();
 }
 
