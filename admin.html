@@ -107,6 +107,19 @@
   .toast.success { background: var(--success); }
   .toast.error { background: var(--danger); }
 
+  /* ── IMPORT ── */
+  .import-bar { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 2px; }
+  .import-bar-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .import-row { display: flex; gap: 8px; }
+  .import-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .import-input:focus { border-color: #1a1a1a; background: #fff; }
+  .import-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .import-btn:hover { background: var(--accent); }
+  .import-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .import-status { font-size: 12px; color: var(--muted); min-height: 16px; }
+  .import-status.success { color: var(--success); }
+  .import-status.error { color: var(--danger); }
+
   /* ── NOTICE ── */
   .notice { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
 
@@ -234,6 +247,22 @@
       <button class="close-btn" onclick="closeEditor()">✕</button>
     </div>
     <div class="modal-body">
+      <div class="import-bar" id="importBar">
+        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional — or fill in manually below)</span></div>
+        <div class="import-row">
+          <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/brand/style123">
+          <button class="import-btn" id="importBtn" onclick="importFromSS()">Import</button>
+        </div>
+        <div class="import-status" id="importStatus">Paste an S&S product URL to auto-fill name, colors, sizes and images. All fields can still be edited after importing.</div>
+        <div style="border-top:1px solid #e8dfc8;margin-top:6px;padding-top:8px">
+          <div class="import-bar-title" style="margin-bottom:6px">📦 SanMar image helper <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(manual entry — SanMar requires a login to auto-import)</span></div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6">
+            For SanMar items, fill in all fields manually. To get color images, use this URL pattern:<br>
+            <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;color:#1a1a1a">https://cdnm.sanmar.com/imglib/mresjpg/2023/SF_<strong>STYLE</strong>_<strong>ColorName</strong>_Model_Front_2023.jpg</code><br>
+            <span style="font-size:11px">Replace <strong>STYLE</strong> with the style number (e.g. PC78H) and <strong>ColorName</strong> with the color (e.g. Black, Navy). You can also right-click any color image on sanmar.com and copy the image URL directly.</span>
+          </div>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <div class="form-label">Item name *</div>
@@ -454,6 +483,103 @@ function openEditor(idx) {
   document.getElementById('fPlacements').value  = p.placements || '';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  // Reset import bar
+  document.getElementById('importUrl').value = '';
+  setImportStatus('Paste an S&S product URL above to auto-fill name, colors, sizes and images.', '');
+}
+
+async function importFromSS() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url || !url.includes('ssactivewear.com')) {
+    setImportStatus('Please paste a valid S&S Activewear product URL.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing…';
+  setImportStatus('Fetching product data…', '');
+
+  try {
+    // Use a CORS proxy to fetch the SS page
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxyUrl);
+    const text = await res.text();
+
+    // Extract the color JSON array embedded in the page
+    const colorMatch = text.match(/\[\{"styleID":\d+.*?"HasAnyImage".*?\}\]/s);
+    if (!colorMatch) throw new Error('Could not find color data on this page. Make sure it's a product page.');
+    const colors = JSON.parse(colorMatch[0]);
+
+    // Extract product name
+    const nameMatch = text.match(/<h1[^>]*>[\s\S]*?<\/h1>/i);
+    let name = '';
+    if (nameMatch) {
+      name = nameMatch[0].replace(/<[^>]+>/g, '').trim();
+      // Remove brand prefix if present (e.g. "Devon & Jones Men's...")
+      name = name.replace(/^[A-Z&.\s]+ - /, '').trim();
+    }
+
+    // Extract price
+    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
+    const price = priceMatch ? priceMatch[1] : '';
+
+    // Extract sizes
+    const sizesMatch = text.match(/Sizes:\s*([^<
+]+)/);
+    let sizes = '';
+    if (sizesMatch) {
+      // Convert "S - 4XL" to "S,M,L,XL,XXL,3XL,4XL" etc.
+      const sizeRange = sizesMatch[1].trim();
+      const sizeOrder = ['XS','S','M','L','XL','XXL','3XL','4XL','5XL'];
+      const youthOrder = ['YXS','YS','YM','YL','YXL'];
+      const parts = sizeRange.split('-').map(s=>s.trim());
+      if (parts.length === 2) {
+        const startIdx = sizeOrder.indexOf(parts[0]);
+        const endIdx   = sizeOrder.indexOf(parts[1]);
+        if (startIdx !== -1 && endIdx !== -1) {
+          sizes = sizeOrder.slice(startIdx, endIdx+1).join(',');
+        } else {
+          sizes = sizeRange.replace(/ - /g, ',');
+        }
+      } else {
+        sizes = sizeRange;
+      }
+    }
+
+    // Build color names and image URLs
+    const colorNames = colors.map(c => c.name);
+    const colorImages = colors.map(c => {
+      // Prefer flat front image (no model), fall back to model front
+      const flatImg = c.Images && c.Images.find(img => img.match(/Color\/\d+_f$/));
+      const modelImg = c.Images && c.Images.find(img => img.match(/_omf$/));
+      const img = flatImg || modelImg || (c.Images && c.Images[0]);
+      return img ? `https://cdn.ssactivewear.com/Images/${img}_fm.jpg` : '';
+    });
+
+    // Use first color flat image as main photo
+    const mainPhoto = colorImages[0] || '';
+
+    // Fill in form fields
+    if (name) document.getElementById('fName').value = name;
+    if (price) document.getElementById('fCost').value = price;
+    if (sizes) document.getElementById('fSizes').value = sizes;
+    document.getElementById('fColors').value = colorNames.join(',');
+    document.getElementById('fPhoto').value = mainPhoto;
+    document.getElementById('fColorImages').value = colorImages.join(',');
+
+    setImportStatus(`✓ Imported! Found ${colors.length} color${colors.length!==1?'s':''} — review and fill in Gender, Type, Logos & Placement below.`, 'success');
+  } catch(e) {
+    setImportStatus(`Error: ${e.message}`, 'error');
+    console.error(e);
+  }
+
+  btn.disabled = false; btn.textContent = 'Import';
+}
+
+function setImportStatus(msg, type) {
+  const el = document.getElementById('importStatus');
+  el.textContent = msg;
+  el.className = 'import-status' + (type ? ' '+type : '');
 }
 
 function closeEditor() {
