@@ -462,6 +462,10 @@ async function importFromSanmar() {
     const proxy = 'https://corsproxy.io/?';
     const res = await fetch(proxy + encodeURIComponent(url));
     const text = await res.text();
+    console.log('SanMar proxy first 800 chars:', text.substring(0, 800));
+    console.log('Has iColor:', text.includes('iColor'));
+    console.log('Has og:image:', text.includes('og:image'));
+    console.log('Has Black Heather:', text.includes('Black Heather'));
 
     // Name - from og:title meta tag in raw HTML
     const titleMatch = text.match(/og:title[^>]*content="([^"]+)"/) ||
