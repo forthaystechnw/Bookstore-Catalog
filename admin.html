@@ -486,14 +486,53 @@ async function importFromSanmar() {
       } else sizes = raw;
     }
 
-    // Colors — extract from page
-    const colorRegex = /\[([^\]]+)\]\(javascript: iColor\('(\d+)'/g;
+    // Colors — try multiple patterns
     const colors = [];
-    let cm;
-    while ((cm = colorRegex.exec(text)) !== null) {
-      const cName = cm[1].trim();
-      if (!colors.find(c => c.name === cName)) colors.push({ name: cName });
+    
+    // Pattern 1: markdown links like [Black Heather](javascript: iColor(...))
+    const colorRegex1 = /\[([^\]]+)\]\(javascript: iColor\(/g;
+    let cm1;
+    while ((cm1 = colorRegex1.exec(text)) !== null) {
+      const cName = cm1[1].trim();
+      if (cName && !colors.find(c => c.name === cName)) colors.push({ name: cName });
     }
+
+    // Pattern 2: color links like /p/27873_BlkHthr "Black Heather"
+    if (!colors.length) {
+      const colorRegex2 = /\/p\/\d+_\w+[^"]*"\s*"([^"]+)"/g;
+      let cm2;
+      while ((cm2 = colorRegex2.exec(text)) !== null) {
+        const cName = cm2[1].trim();
+        if (cName && !colors.find(c => c.name === cName)) colors.push({ name: cName });
+      }
+    }
+
+    // Pattern 3: extract from title "Color:" line
+    if (!colors.length) {
+      const colorBlock = text.match(/\*\*Color:\*\*\s*([\s\S]+?)(?=\n\n|\*\*)/);
+      if (colorBlock) {
+        colorBlock[1].split('\n').forEach(line => {
+          const name = line.replace(/\[([^\]]+)\].*/,'$1').trim();
+          if (name && name.length > 1 && !colors.find(c => c.name === name)) colors.push({ name });
+        });
+      }
+    }
+
+    // Pattern 4: look for the color section specifically showing color names as links
+    if (!colors.length) {
+      const colorSection = text.match(/\*\*Color:\*\*([\s\S]{0,500}?)(?=\[Add to Cart\]|\n\n\[Add to Cart\])/);
+      if (colorSection) {
+        const linkRe = /\[([^\]]+)\]\(/g;
+        let lm;
+        while ((lm = linkRe.exec(colorSection[1])) !== null) {
+          const cName = lm[1].trim();
+          if (cName && cName !== 'Add to Cart' && !colors.find(c => c.name === cName)) {
+            colors.push({ name: cName });
+          }
+        }
+      }
+    }
+
     if (!colors.length) throw new Error('Could not find colors. Make sure it is a SanMar product page.');
 
     // Base image from og:image
