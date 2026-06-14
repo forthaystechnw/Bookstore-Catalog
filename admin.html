@@ -7,173 +7,134 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --primary: #fbbe00;
-    --accent: #d4a000;
-    --bg: #f5f2ed;
-    --surface: #ffffff;
-    --border: #e0dbd2;
-    --text: #1a1a1a;
-    --muted: #6b6560;
-    --light: #f0ece5;
-    --radius: 10px;
-    --font-display: 'Barlow Condensed', sans-serif;
-    --font-body: 'Barlow', sans-serif;
-    --danger: #b91c1c;
-    --danger-bg: #fee2e2;
-    --success: #2d6a4f;
-    --success-bg: #d8f3dc;
+    --primary: #fbbe00; --accent: #d4a000; --bg: #f5f2ed; --surface: #ffffff;
+    --border: #e0dbd2; --text: #1a1a1a; --muted: #6b6560; --light: #f0ece5;
+    --radius: 10px; --font-display: "Barlow Condensed", sans-serif; --font-body: "Barlow", sans-serif;
+    --danger: #b91c1c; --danger-bg: #fee2e2; --success: #2d6a4f; --success-bg: #d8f3dc;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-body); background: var(--bg); color: var(--text); }
 
-  /* ── LOGIN ── */
-  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  /* LOGIN */
+  #loginWrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
   .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 20px; }
-  .login-logo { display: flex; justify-content: center; margin-bottom: 4px; }
+  .login-logo { display: flex; justify-content: center; }
   .login-logo img { height: 60px; width: auto; object-fit: contain; }
-  .login-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; text-align: center; color: var(--text); }
-  .login-sub { font-size: 13px; color: var(--muted); text-align: center; margin-top: -12px; }
-  .login-field { display: flex; flex-direction: column; gap: 5px; }
-  .login-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
-  .login-input { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; width: 100%; transition: border-color 0.15s; }
+  .login-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; text-align: center; }
+  .login-sub { font-size: 13px; color: var(--muted); text-align: center; }
+  .login-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 5px; display: block; }
+  .login-input { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; width: 100%; }
   .login-input:focus { border-color: var(--primary); background: #fff; }
-  .login-btn { width: 100%; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; font-family: var(--font-body); cursor: pointer; transition: background 0.15s; }
+  .login-btn { width: 100%; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
   .login-btn:hover { background: #333; }
   .login-error { background: var(--danger-bg); color: var(--danger); font-size: 13px; padding: 8px 12px; border-radius: 8px; display: none; text-align: center; }
 
-  /* ── ADMIN SHELL ── */
-  #adminShell { display: none; height: 100vh; overflow: hidden; flex-direction: column; }
-  #adminShell.visible { display: flex; }
-  header { background: #fbbe00; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 70px; position: sticky; top: 0; z-index: 100; }
+  /* ADMIN SHELL */
+  #adminShell { display: none; flex-direction: column; height: 100vh; overflow: hidden; }
+  header { background: #fbbe00; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
   .header-logo img { height: 52px; width: auto; object-fit: contain; }
   .header-right { display: flex; align-items: center; gap: 12px; }
   .header-tag { font-size: 12px; font-weight: 600; background: #1a1a1a; color: #fff; border-radius: 6px; padding: 4px 12px; }
-  .logout-btn { background: transparent; border: 1.5px solid #1a1a1a; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; transition: all 0.15s; }
+  .logout-btn { background: transparent; border: 1.5px solid #1a1a1a; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
   .logout-btn:hover { background: #1a1a1a; color: #fff; }
 
-  /* ── ADMIN LAYOUT ── */
+  /* LAYOUT */
   .admin-layout { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; flex: 1; overflow: hidden; }
 
-  /* ── SECTION ── */
+  /* SECTION */
   .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; flex: 1; overflow: hidden; }
   .section-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--light); border-radius: var(--radius) var(--radius) 0 0; flex-shrink: 0; }
-  .section-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--text); }
-  .section-body { padding: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .table-wrap { overflow: auto; border-radius: 0 0 var(--radius) var(--radius); flex: 1; }
+  .section-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; }
+  .section-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .table-wrap { overflow: auto; flex: 1; }
 
-  /* ── TABLE ── */
-  .items-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
+  /* TABLE */
+  .items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .items-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--surface); z-index: 2; }
   .items-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .items-table tr:last-child td { border-bottom: none; }
   .items-table tr:hover td { background: var(--light); }
   .items-table .col-actions { position: sticky; right: 0; background: var(--surface); z-index: 1; box-shadow: -3px 0 8px rgba(0,0,0,0.05); white-space: nowrap; padding-right: 1.5rem; }
   .items-table tr:hover .col-actions { background: var(--light); }
-  .item-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: contain; background: var(--light); padding: 3px; flex-shrink: 0; }
-  .item-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; background: var(--light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0.4; }
-  .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--light); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .edit-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; white-space: nowrap; }
+  .hide-mobile { }
+  .item-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: contain; background: var(--light); padding: 3px; }
+  .item-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; background: var(--light); display: flex; align-items: center; justify-content: center; opacity: 0.4; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--light); color: var(--muted); text-transform: uppercase; }
+  .edit-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
   .edit-btn:hover { background: var(--accent); }
   .delete-btn { background: var(--danger-bg); color: var(--danger); border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; margin-left: 4px; }
   .delete-btn:hover { background: var(--danger); color: #fff; }
   .add-item-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .add-item-btn:hover { background: #333; }
   .loading-row td { text-align: center; color: var(--muted); padding: 2rem; }
 
-  /* ── EDIT MODAL ── */
+  /* MODAL */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,35,0.5); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
   .overlay.open { display: flex; }
   .modal { background: var(--surface); border-radius: 14px; width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto; }
   .modal-header { padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; border-radius: 14px 14px 0 0; }
   .modal-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; }
   .close-btn { background: var(--light); border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--muted); }
-  .close-btn:hover { background: var(--border); }
   .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 14px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group.full { grid-column: 1 / -1; }
   .form-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
   .form-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .form-input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; width: 100%; transition: border-color 0.15s; }
+  .form-input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; width: 100%; }
   .form-input:focus { border-color: var(--primary); background: #fff; }
   textarea.form-input { resize: vertical; min-height: 60px; }
   .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; position: sticky; bottom: 0; background: var(--surface); border-radius: 0 0 14px 14px; }
   .save-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
-  .save-btn:hover { background: #333; }
   .cancel-btn { background: var(--light); color: var(--text); border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-family: var(--font-body); cursor: pointer; }
 
-  /* ── TOAST ── */
+  /* IMPORT */
+  .import-bar { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .import-bar-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .import-row { display: flex; gap: 8px; }
+  .import-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; }
+  .import-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; white-space: nowrap; }
+  .import-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .import-status { font-size: 12px; color: var(--muted); }
+  .import-status.success { color: var(--success); }
+  .import-status.error { color: var(--danger); }
+
+  /* TOAST */
   .toast { position: fixed; bottom: 2rem; right: 2rem; background: #1a1a1a; color: #fff; border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 500; z-index: 500; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast.success { background: var(--success); }
   .toast.error { background: var(--danger); }
 
-  /* ── IMPORT ── */
-  .import-bar { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 2px; }
-  .import-bar-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-  .import-row { display: flex; gap: 8px; }
-  .import-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
-  .import-input:focus { border-color: #1a1a1a; background: #fff; }
-  .import-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-  .import-btn:hover { background: var(--accent); }
-  .import-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
-  .import-status { font-size: 12px; color: var(--muted); min-height: 16px; }
-  .import-status.success { color: var(--success); }
-  .import-status.error { color: var(--danger); }
+  /* NOTICE */
+  .notice { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
 
-  /* ── NOTICE ── */
-  .notice { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
-
-  /* ── MOBILE ── */
   @media (max-width: 700px) {
     header { padding: 0 1rem; height: 60px; }
     .header-logo img { height: 40px !important; }
     .header-tag { display: none; }
-    .header-right { gap: 8px; }
-    .admin-layout { padding: 1rem; gap: 1rem; }
-
-    /* Hide less important table columns on mobile */
-    .items-table .hide-mobile { display: none; }
-
-    /* Make table scroll horizontally */
-    .section { overflow-x: auto; }
-    .items-table { min-width: 340px; }
-    .items-table th, .items-table td { padding: 8px 6px; }
-    .items-table th:first-child, .items-table td:first-child { padding-left: 1rem; }
-    .items-table th:last-child, .items-table td:last-child { padding-right: 1rem; }
-
-    /* Stack edit/delete buttons */
-    .edit-btn, .delete-btn { padding: 6px 10px; font-size: 12px; }
-    .delete-btn { margin-left: 2px; }
-
-    /* Modal full screen on mobile */
-    .overlay { padding: 0; align-items: flex-end; }
-    .modal { border-radius: 16px 16px 0 0; max-height: 95vh; }
+    .admin-layout { padding: 0.75rem; }
+    .hide-mobile { display: none; }
     .form-grid { grid-template-columns: 1fr; }
     .form-group.full { grid-column: 1; }
-
-    /* Add item button smaller */
-    .add-item-btn span { display: none; }
-    .section-header { padding: 0.75rem 1rem; }
+    .overlay { padding: 0; align-items: flex-end; }
+    .modal { border-radius: 16px 16px 0 0; max-height: 95vh; }
   }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div class="login-wrap" id="loginWrap">
+<div id="loginWrap">
   <div class="login-card">
     <div class="login-logo">
       <img src="https://raw.githubusercontent.com/jordanedwards27/Bookstore-Catalog/main/TIGER_HORIZONTAL_TM-01%20(1).png" alt="Logo" onerror="this.style.display='none'">
     </div>
     <div class="login-title">Admin Login</div>
     <div class="login-sub">Bookstore Embroidery Catalog</div>
-    <div class="login-field">
-      <div class="login-label">Username</div>
+    <div>
+      <label class="login-label" for="loginUser">Username</label>
       <input class="login-input" type="text" id="loginUser" placeholder="admin" autocomplete="username">
     </div>
-    <div class="login-field">
-      <div class="login-label">Password</div>
+    <div>
+      <label class="login-label" for="loginPass">Password</label>
       <input class="login-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-error" id="loginError">Incorrect username or password.</div>
@@ -181,7 +142,6 @@
   </div>
 </div>
 
-<!-- ADMIN SHELL -->
 <div id="adminShell">
   <header>
     <div class="header-logo">
@@ -195,19 +155,16 @@
   </header>
 
   <div class="admin-layout">
-
-    <!-- NOTICE -->
     <div class="notice">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
-      Changes made here update your Google Sheet directly. You can also edit the Sheet manually — both work. Refresh this page to see the latest data.
+      Changes made here update your Google Sheet directly. You can also edit the Sheet manually — both work.
     </div>
 
-    <!-- CATALOG ITEMS -->
     <div class="section">
       <div class="section-header">
         <div class="section-title">Catalog Items</div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <input type="text" id="adminSearch" placeholder="Search items…" oninput="renderTable()" style="border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;font-family:var(--font-body);background:var(--bg);color:var(--text);outline:none;width:200px;" onfocus="this.style.borderColor='#1a1a1a'" onblur="this.style.borderColor='var(--border)'">
+          <input type="text" id="adminSearch" placeholder="Search items…" oninput="renderTable()" style="border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;font-family:var(--font-body);background:var(--bg);color:var(--text);outline:none;width:200px;">
           <button class="add-item-btn" onclick="openEditor(null)">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M12 4v16m8-8H4"/></svg>
             Add item
@@ -215,28 +172,27 @@
         </div>
       </div>
       <div class="section-body">
-      <div class="table-wrap">
-        <table class="items-table" id="itemsTable">
-          <thead>
-            <tr>
-              <th style="padding-left:1.5rem">Photo</th>
-              <th>Item</th>
-              <th class="hide-mobile">Gender</th>
-              <th class="hide-mobile">Type</th>
-              <th class="hide-mobile">Colors</th>
-              <th class="hide-mobile">Sizes</th>
-              <th>Cost</th>
-              <th class="col-actions" style="padding-left:1rem"></th>
-            </tr>
-          </thead>
-          <tbody id="itemsBody">
-            <tr class="loading-row"><td colspan="8">Loading items…</td></tr>
-          </tbody>
-        </table>
-      </div>
+        <div class="table-wrap">
+          <table class="items-table" id="itemsTable">
+            <thead>
+              <tr>
+                <th style="padding-left:1.5rem">Photo</th>
+                <th>Item</th>
+                <th class="hide-mobile">Gender</th>
+                <th class="hide-mobile">Type</th>
+                <th class="hide-mobile">Colors</th>
+                <th class="hide-mobile">Sizes</th>
+                <th>Cost</th>
+                <th class="col-actions" style="padding-left:1rem"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody">
+              <tr class="loading-row"><td colspan="8">Loading items…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -248,20 +204,15 @@
       <button class="close-btn" onclick="closeEditor()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="import-bar" id="importBar">
-        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional — or fill in manually below)</span></div>
+      <div class="import-bar">
+        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional)</span></div>
         <div class="import-row">
           <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/brand/style123">
           <button class="import-btn" id="importBtn" onclick="importFromSS()">Import</button>
         </div>
-        <div class="import-status" id="importStatus">Paste an S&S product URL to auto-fill name, colors, sizes and images. All fields can still be edited after importing.</div>
+        <div class="import-status" id="importStatus">Paste an S&S URL to auto-fill name, colors, sizes and images. All fields can still be edited after importing.</div>
         <div style="border-top:1px solid #e8dfc8;margin-top:6px;padding-top:8px">
-          <div class="import-bar-title" style="margin-bottom:6px">📦 SanMar image helper <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(manual entry — SanMar requires a login to auto-import)</span></div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.6">
-            For SanMar items, fill in all fields manually. To get color images, use this URL pattern:<br>
-            <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:11px;color:#1a1a1a">https://cdnm.sanmar.com/imglib/mresjpg/2023/SF_<strong>STYLE</strong>_<strong>ColorName</strong>_Model_Front_2023.jpg</code><br>
-            <span style="font-size:11px">Replace <strong>STYLE</strong> with the style number (e.g. PC78H) and <strong>ColorName</strong> with the color (e.g. Black, Navy). You can also right-click any color image on sanmar.com and copy the image URL directly.</span>
-          </div>
+          <div class="import-bar-title" style="margin-bottom:4px">📦 SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(fill in manually — right-click color images on sanmar.com to copy URL)</span></div>
         </div>
       </div>
       <div class="form-grid">
@@ -284,7 +235,7 @@
         <div class="form-group full">
           <div class="form-label">Size options</div>
           <input class="form-input" type="text" id="fSizes" placeholder="XS,S,M,L,XL,XXL — leave blank if no sizes">
-          <div class="form-hint">Comma-separated. Leave blank for items with no sizes (hats, bags, etc.)</div>
+          <div class="form-hint">Comma-separated. Leave blank for hats, bags, etc.</div>
         </div>
         <div class="form-group full">
           <div class="form-label">Color options</div>
@@ -294,12 +245,12 @@
         <div class="form-group full">
           <div class="form-label">Photo URL</div>
           <input class="form-input" type="text" id="fPhoto" placeholder="https://drive.google.com/file/d/...">
-          <div class="form-hint">Main product photo. Use a Google Drive share link or any public image URL.</div>
+          <div class="form-hint">Main product photo. Google Drive or any public image URL.</div>
         </div>
         <div class="form-group full">
           <div class="form-label">Color images</div>
           <input class="form-input" type="text" id="fColorImages" placeholder="url_navy,url_black,url_cardinal">
-          <div class="form-hint">Comma-separated URLs matching each color above. Leave blank for colors without a photo.</div>
+          <div class="form-hint">Comma-separated URLs matching each color above.</div>
         </div>
         <div class="form-group full">
           <div class="form-label">Logo options</div>
@@ -328,6 +279,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+
 // ── CONFIG ───────────────────────────────────────────────────────────
 const SHEET_ID   = '1TrXu2AxiIOXjHAnccFb2NVdx9EQlMNTVUvfCXl00jmo';
 const SHEET_NAME = 'Catalog Information';
@@ -347,7 +299,8 @@ function doLogin() {
   const p = document.getElementById('loginPass').value;
   if (u === CREDS.user && p === CREDS.pass) {
     document.getElementById('loginWrap').style.display = 'none';
-    document.getElementById('adminShell').classList.add('visible');
+    const shell = document.getElementById('adminShell');
+    shell.style.display = 'flex';
     sessionStorage.setItem('admin_auth', '1');
     loadItems();
   } else {
@@ -357,7 +310,7 @@ function doLogin() {
 
 function doLogout() {
   sessionStorage.removeItem('admin_auth');
-  document.getElementById('adminShell').classList.remove('visible');
+  document.getElementById('adminShell').style.display = 'none';
   document.getElementById('loginWrap').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -366,7 +319,7 @@ function doLogout() {
 // Auto-login if session still active
 if (sessionStorage.getItem('admin_auth') === '1') {
   document.getElementById('loginWrap').style.display = 'none';
-  document.getElementById('adminShell').classList.add('visible');
+  document.getElementById('adminShell').style.display = 'flex';
   loadItems();
 }
 
@@ -692,64 +645,7 @@ function parseCSV(text) {
   if (cur || row.length) { row.push(cur.trim()); if (row.some(c => c.length > 0)) rows.push(row); }
   return rows;
 }
+
 </script>
-
-<!--
-════════════════════════════════════════════════════════════════════════
-  ADMIN APPS SCRIPT — paste into Extensions → Apps Script in your Sheet
-  This enables saving, updating, and deleting items from the admin panel.
-  Deploy → New deployment → Web App → Anyone → Deploy
-  Paste the URL into ADMIN_SCRIPT_URL above.
-════════════════════════════════════════════════════════════════════════
-
-function doPost(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Catalog Information');
-  var data = JSON.parse(e.postData.contents);
-
-  // Map field names to data values
-  var fieldMap = {
-    'Item':               data.name,
-    'Gender':             data.gender,
-    'Type':               data.type,
-    'Size Options':       data.sizes,
-    'Color Options':      data.colors,
-    'Color Images':       data.colorImgs,
-    'Logo Options':       data.logoOpts,
-    'Logo Images':        data.logoImgs,
-    'Placement Options':  data.placements,
-    'Cost':               data.cost,
-    'Photo URL':          data.photo
-  };
-
-  if (data.action === 'delete' && data.rowIdx) {
-    sheet.deleteRow(data.rowIdx);
-  } else {
-    // Get actual header row to find column positions dynamically
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-    if (data.action === 'append') {
-      // Build row in the exact order of existing headers
-      var newRow = headers.map(function(h) {
-        return fieldMap.hasOwnProperty(h) ? fieldMap[h] : '';
-      });
-      sheet.appendRow(newRow);
-    } else if (data.action === 'update' && data.rowIdx) {
-      // Update each column by finding its position from the header
-      headers.forEach(function(h, i) {
-        if (fieldMap.hasOwnProperty(h)) {
-          sheet.getRange(data.rowIdx, i + 1).setValue(fieldMap[h]);
-        }
-      });
-    }
-  }
-
-  return ContentService
-    .createTextOutput(JSON.stringify({status:'ok'}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-════════════════════════════════════════════════════════════════════════
--->
 </body>
 </html>
