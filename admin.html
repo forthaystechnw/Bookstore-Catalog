@@ -461,7 +461,7 @@ async function importFromSS() {
 
     // Extract the color JSON array embedded in the page
     const colorMatch = text.match(/\[\{"styleID":\d+.*?"HasAnyImage".*?\}\]/s);
-    if (!colorMatch) throw new Error('Could not find color data on this page. Make sure it's a product page.');
+    if (!colorMatch) throw new Error('Could not find color data on this page. Make sure it is a product page.');
     const colors = JSON.parse(colorMatch[0]);
 
     // Extract product name
