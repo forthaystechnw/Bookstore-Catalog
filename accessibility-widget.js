@@ -189,7 +189,7 @@
     "html.tiger-access-mode-highcontrast select:not(.tiger-access-widget select)," +
     "html.tiger-access-mode-highcontrast textarea{border:2px solid #fff !important;}" +
 
-    "html.tiger-access-grayscale *:not(.tiger-access-widget):not(.tiger-access-widget *){filter:grayscale(1) !important;}" +
+    "html.tiger-access-grayscale *:not(html):not(body):not(.tiger-access-widget):not(.tiger-access-widget *){filter:grayscale(1) !important;}" +
 
     "html.tiger-access-line-relaxed *:not(.tiger-access-widget):not(.tiger-access-widget *){line-height:1.6 !important;}" +
     "html.tiger-access-line-loose *:not(.tiger-access-widget):not(.tiger-access-widget *){line-height:2 !important;}" +
