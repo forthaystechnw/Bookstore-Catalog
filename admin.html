@@ -680,8 +680,7 @@ async function importFromSS() {
     const price = priceMatch ? priceMatch[1] : '';
 
     // Sizes from spec table or sizes line
-    const sizesLineMatch = text.match(/Sizes:\s*([^
-<|]+)/);
+    const sizesLineMatch = text.match(/Sizes:\s*([^\n<|]+)/);
     let sizes = '';
     if (sizesLineMatch) {
       const raw = sizesLineMatch[1].trim();
@@ -869,37 +868,6 @@ function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
 
 function clearSanmarColors() {
   setImportStatus('Paste a product URL from S&S Activewear or SanMar to auto-fill everything.', '');
-}
-
-// ── AUTH ─────────────────────────────────────────────────────────────
-async function doLogin() {
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const pHash = await sha256(p);
-  if (u === CREDS.user && pHash === CREDS.passHash) {
-    document.getElementById('loginWrap').style.display = 'none';
-    const shell = document.getElementById('adminShell');
-    shell.style.display = 'flex';
-    sessionStorage.setItem('admin_auth', '1');
-    loadItems();
-  } else {
-    document.getElementById('loginError').style.display = 'block';
-  }
-}
-
-function doLogout() {
-  sessionStorage.removeItem('admin_auth');
-  document.getElementById('adminShell').style.display = 'none';
-  document.getElementById('loginWrap').style.display = 'flex';
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
-}
-
-// Auto-login if session still active
-if (sessionStorage.getItem('admin_auth') === '1') {
-  document.getElementById('loginWrap').style.display = 'none';
-  document.getElementById('adminShell').style.display = 'flex';
-  loadItems();
 }
 
 // ── LOAD ITEMS ────────────────────────────────────────────────────────
