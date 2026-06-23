@@ -249,7 +249,10 @@
         </div>
         <div class="form-group full">
           <div class="form-label">Main photo URL <span style="font-weight:400;text-transform:none;color:var(--muted)">(auto-filled from first color - or paste your own)</span></div>
-          <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value;updatePhotoPreview()" style="flex:1">
+            <img id="photoPreviewThumb" src="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;background:var(--light);display:none;border:1px solid var(--border)" onerror="this.style.display='none'">
+          </div>
           <div class="form-hint">Shown on the catalog card. If left blank, first color image is used.</div>
         </div>
         <div class="form-group full">
@@ -473,6 +476,14 @@ function openEditor(idx) {
   if (cntEl) cntEl.textContent = '';
 }
 
+function updatePhotoPreview() {
+  const url = document.getElementById('fPhotoDisplay').value.trim();
+  const thumb = document.getElementById('photoPreviewThumb');
+  if (!thumb) return;
+  if (url) { thumb.src = driveUrl(url); thumb.style.display = 'block'; }
+  else { thumb.style.display = 'none'; }
+}
+
 // ── SANMAR FULL IMPORTER ─────────────────────────────────────────────
 function clearSanmarColors() { setSanmarStatus('Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.', ''); }
 
@@ -634,7 +645,7 @@ async function importFromSS() {
     if (gender) document.getElementById('fGender').value = gender;
     if (type)   document.getElementById('fType').value = type;
     buildColorPicker(colorNames, colorImages);
-    if (mainPhoto) document.getElementById('fPhotoDisplay').value = mainPhoto;
+    if (mainPhoto) { document.getElementById('fPhotoDisplay').value = mainPhoto; updatePhotoPreview(); }
 
     setImportStatus('Imported! ' + colors.length + ' colors - uncheck any you do not want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
   } catch(e) {
@@ -653,21 +664,24 @@ function setImportStatus(msg, type) {
 
 // ── SANMAR FULL IMPORTER ──────────────────────────────────────────────
 async function importFromSanmar() {
-  const url = document.getElementById('importUrl').value.trim();
+  let url = document.getElementById('importUrl').value.trim();
   if (!url || !url.includes('sanmar.com')) {
     setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
   }
   const btn = document.getElementById('importBtn');
   btn.disabled = true; btn.textContent = 'Importing...';
-  setSanmarStatus('Fetching color...', '');
+  setSanmarStatus('Fetching product...', '');
 
   try {
-    // Extract color code from URL e.g. /p/1313_Black or /p/27873_BlkHthr
-    const colorCodeMatch = url.match(/\/p\/[^_]+_(.+)$/);
-    const colorCode = colorCodeMatch ? colorCodeMatch[1] : '';
-    if (!colorCode) throw new Error('Could not find color in URL. Make sure URL ends in _ColorName e.g. /p/1313_Black');
+    // Extract the /p/STYLE_COLOR path and use cdnp.sanmar.com (static site, no JS needed)
+    const pathMatch = url.match(/\/p\/(.+)$/);
+    if (!pathMatch) throw new Error('Could not find product path in URL. Make sure it is a SanMar product page.');
+    const productPath = pathMatch[1];
+    const colorCode = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : '';
 
-    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+    // Use cdnp.sanmar.com - the static version that works with proxies
+    const cdnpUrl = 'https://cdnp.sanmar.com/p/' + productPath;
+    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(cdnpUrl));
     const text = await res.text();
 
     // Name from title - remove " in ColorName | SanMar" suffix
@@ -731,7 +745,7 @@ async function importFromSanmar() {
     if (name && !document.getElementById('fName').value) document.getElementById('fName').value = name;
     if (price && !document.getElementById('fCost').value) document.getElementById('fCost').value = price;
     if (sizes && !document.getElementById('fSizes').value) document.getElementById('fSizes').value = sizes;
-    if (imgUrl && !document.getElementById('fPhotoDisplay').value) document.getElementById('fPhotoDisplay').value = imgUrl;
+    if (imgUrl && !document.getElementById('fPhotoDisplay').value) { document.getElementById('fPhotoDisplay').value = imgUrl; updatePhotoPreview(); }
 
     // Clear URL field and focus for next color
     const inp = document.getElementById('importUrl');
