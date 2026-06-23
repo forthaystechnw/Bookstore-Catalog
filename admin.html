@@ -206,20 +206,12 @@
     </div>
     <div class="modal-body">
       <div class="import-bar">
-        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional)</span></div>
+        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear or SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional — or fill in manually below)</span></div>
         <div class="import-row">
-          <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/brand/style123">
-          <button class="import-btn" id="importBtn" onclick="importFromSS()">Import</button>
+          <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/... or https://www.sanmar.com/p/...">
+          <button class="import-btn" id="importBtn" onclick="autoImport()">Import</button>
         </div>
-        <div class="import-status" id="importStatus">Paste an S&S URL to auto-fill name, colors, sizes and images. All fields can still be edited after importing.</div>
-        <div style="border-top:1px solid #e8dfc8;margin-top:6px;padding-top:8px">
-          <div class="import-bar-title" style="margin-bottom:6px">📦 Import from SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(paste any color URL — imports all colors automatically)</span></div>
-          <div class="import-row">
-            <input class="import-input" type="text" id="sanmarUrl" placeholder="https://www.sanmar.com/p/27873_BlkHthr">
-            <button class="import-btn" id="sanmarBtn" onclick="importFromSanmar()">Import</button>
-          </div>
-          <div class="import-status" id="sanmarStatus">Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.</div>
-        </div>
+        <div class="import-status" id="importStatus">Paste a product URL from S&S Activewear or SanMar to auto-fill everything.</div>
       </div>
       <div class="form-grid">
         <div class="form-group">
@@ -244,19 +236,21 @@
           <div class="form-hint">Comma-separated. Leave blank for hats, bags, etc.</div>
         </div>
         <div class="form-group full">
-          <div class="form-label">Color options</div>
-          <input class="form-input" type="text" id="fColors" placeholder="e.g. Navy,Black,Cardinal,White">
-          <div class="form-hint">Comma-separated color names.</div>
+          <div class="form-label">Color options <span style="font-weight:400;text-transform:none;color:var(--muted)">— check colors to offer, uncheck to hide</span></div>
+          <div class="color-picker-actions">
+            <button type="button" class="color-action-btn" onclick="selectAllColors()">Select all</button>
+            <button type="button" class="color-action-btn" onclick="selectNoColors()">Deselect all</button>
+          </div>
+          <div class="color-picker-grid" id="colorPickerGrid"></div>
+          <div class="form-hint" style="margin-top:6px">Colors are imported automatically. Use checkboxes to control which colors faculty can choose from.</div>
+          <input type="hidden" id="fColors">
+          <input type="hidden" id="fColorImages">
+          <input type="hidden" id="fPhoto">
         </div>
         <div class="form-group full">
-          <div class="form-label">Photo URL</div>
-          <input class="form-input" type="text" id="fPhoto" placeholder="https://drive.google.com/file/d/...">
-          <div class="form-hint">Main product photo. Google Drive or any public image URL.</div>
-        </div>
-        <div class="form-group full">
-          <div class="form-label">Color images</div>
-          <input class="form-input" type="text" id="fColorImages" placeholder="url_navy,url_black,url_cardinal">
-          <div class="form-hint">Comma-separated URLs matching each color above.</div>
+          <div class="form-label">Main photo URL <span style="font-weight:400;text-transform:none;color:var(--muted)">(auto-filled from first color — or paste your own)</span></div>
+          <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value">
+          <div class="form-hint">Shown on the catalog card. If left blank, first color image is used.</div>
         </div>
         <div class="form-group full">
           <div class="form-label">Logo options</div>
@@ -445,24 +439,37 @@ function openEditor(idx) {
   document.getElementById('fColors').value      = p.colors     || '';
   document.getElementById('fPhoto').value       = p.photo      || '';
   document.getElementById('fColorImages').value = p.colorImgs  || '';
+  // Load existing colors into picker
+  const existingColors = (p.colors || '').split(',').map(c=>c.trim()).filter(Boolean);
+  const existingImgs = (p.colorImgs || '').split(',').map(u=>u.trim());
+  if (existingColors.length) {
+    buildColorPicker(existingColors, existingImgs);
+    document.getElementById('fPhotoDisplay').value = p.photo || '';
+  } else {
+    allColorData = [];
+    renderColorPicker();
+    document.getElementById('fPhotoDisplay').value = p.photo || '';
+    document.getElementById('fPhoto').value = p.photo || '';
+  }
   document.getElementById('fLogoOptions').value = p.logoOpts   || '';
   document.getElementById('fLogoImages').value  = p.logoImgs   || '';
   document.getElementById('fPlacements').value  = p.placements || '';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  // Reset color picker for new item
+  if (editingIdx === null) { allColorData = []; renderColorPicker(); document.getElementById('fPhotoDisplay').value = ''; document.getElementById('fPhoto').value = ''; }
   // Reset import bar
   document.getElementById('importUrl').value = '';
-  setImportStatus('Paste an S&S product URL above to auto-fill name, colors, sizes and images.', '');
-  clearSanmarColors();
+  setImportStatus('Paste a product URL from S&S Activewear or SanMar to auto-fill everything.', '');
 }
 
 // ── SANMAR FULL IMPORTER ─────────────────────────────────────────────
 async function importFromSanmar() {
-  const url = document.getElementById('sanmarUrl').value.trim();
+  const url = document.getElementById('importUrl').value.trim();
   if (!url || !url.includes('sanmar.com')) {
-    setSanmarStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
+    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
   }
-  const btn = document.getElementById('sanmarBtn');
+  const btn = document.getElementById('importBtn');
   btn.disabled = true; btn.textContent = 'Importing...';
   setSanmarStatus('Fetching product page...', '');
 
@@ -570,12 +577,579 @@ async function importFromSanmar() {
   btn.disabled = false; btn.textContent = 'Import';
 }
 
-function setSanmarStatus(msg, type) {
-  const el = document.getElementById('sanmarStatus');
+function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
+
+function clearSanmarColors() { setSanmarStatus('Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.', ''); }
+
+// ── COLOR PICKER ─────────────────────────────────────────────────────
+let allColorData = []; // [{name, imgUrl, checked}]
+
+function buildColorPicker(colorNames, colorImages) {
+  allColorData = colorNames.map((name, i) => ({
+    name,
+    imgUrl: colorImages[i] || '',
+    checked: true
+  }));
+  renderColorPicker();
+  syncColorFields();
+}
+
+function renderColorPicker() {
+  const grid = document.getElementById('colorPickerGrid');
+  if (!allColorData.length) {
+    grid.innerHTML = '<div style="font-size:12px;color:var(--muted)">Import an item to see color options, or add them manually below.</div>';
+    return;
+  }
+  grid.innerHTML = allColorData.map((c, i) => `
+    <div class="color-pick-item ${c.checked ? 'checked' : ''}" onclick="toggleColor(${i})">
+      ${c.imgUrl
+        ? `<img src="${c.imgUrl}" alt="${c.name}" onerror="this.style.display='none'">`
+        : `<div style="width:56px;height:56px;border-radius:8px;background:var(--light);border:2px solid ${c.checked ? '#1a1a1a' : 'transparent'}"></div>`}
+      <input class="color-pick-check" type="checkbox" ${c.checked ? 'checked' : ''} onclick="event.stopPropagation();toggleColor(${i})">
+      <div class="color-pick-label" title="${c.name}">${c.name}</div>
+    </div>`).join('');
+}
+
+function toggleColor(i) {
+  allColorData[i].checked = !allColorData[i].checked;
+  renderColorPicker();
+  syncColorFields();
+}
+
+function selectAllColors() { allColorData.forEach(c => c.checked = true); renderColorPicker(); syncColorFields(); }
+function selectNoColors()  { allColorData.forEach(c => c.checked = false); renderColorPicker(); syncColorFields(); }
+
+function syncColorFields() {
+  const checked = allColorData.filter(c => c.checked);
+  document.getElementById('fColors').value = checked.map(c => c.name).join(',');
+  document.getElementById('fColorImages').value = checked.map(c => c.imgUrl).join(',');
+  const firstImg = checked.length ? checked[0].imgUrl : '';
+  document.getElementById('fPhoto').value = document.getElementById('fPhotoDisplay').value || firstImg;
+  if (!document.getElementById('fPhotoDisplay').value && firstImg) {
+    document.getElementById('fPhotoDisplay').value = firstImg;
+  }
+}
+
+function addManualColor() {
+  const name = prompt('Color name:');
+  if (!name) return;
+  const img = prompt('Image URL (optional):') || '';
+  allColorData.push({ name: name.trim(), imgUrl: img.trim(), checked: true });
+  renderColorPicker();
+  syncColorFields();
+}
+
+// ── AUTO-IMPORT ROUTER ───────────────────────────────────────────────
+async function autoImport() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url) { setImportStatus('Please paste a product URL.', 'error'); return; }
+  if (url.includes('ssactivewear.com')) {
+    await importFromSS();
+  } else if (url.includes('sanmar.com')) {
+    // Point sanmarUrl to same input for the SanMar function
+    document.getElementById('importUrl').dataset.sanmar = '1';
+    await importFromSanmar();
+  } else {
+    setImportStatus('Please paste a URL from ssactivewear.com or sanmar.com.', 'error');
+  }
+}
+
+// ── S&S ACTIVEWEAR IMPORT ────────────────────────────────────────────
+async function importFromSS() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url || !url.includes('ssactivewear.com')) {
+    setImportStatus('Please paste a valid S&S Activewear product URL.', 'error'); return;
+  }
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing...';
+  setImportStatus('Fetching product...', '');
+
+  try {
+    const proxy = 'https://corsproxy.io/?';
+    const res = await fetch(proxy + encodeURIComponent(url));
+    const text = await res.text();
+
+    // Product name from title
+    const titleMatch = text.match(/<title>([^<]+)<\/title>/);
+    let name = titleMatch ? titleMatch[1].replace(/\s*-\s*S&S Activewear.*$/i,'').replace(/\s*\|\s*.*/,'').trim() : '';
+    // Remove style number suffix like " - DG798"
+    name = name.replace(/\s*-\s*[A-Z]{1,3}\d+[A-Z]?\s*$/,'').trim();
+
+    // Price
+    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
+    const price = priceMatch ? priceMatch[1] : '';
+
+    // Sizes from spec table or sizes line
+    const sizesLineMatch = text.match(/Sizes:\s*([^
+<|]+)/);
+    let sizes = '';
+    if (sizesLineMatch) {
+      const raw = sizesLineMatch[1].trim();
+      const sizeOrder = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
+      const parts = raw.split('-').map(s => s.trim());
+      if (parts.length === 2) {
+        const si = sizeOrder.indexOf(parts[0]);
+        const ei = sizeOrder.indexOf(parts[1]);
+        if (si !== -1 && ei !== -1) sizes = sizeOrder.slice(si, ei+1).join(',');
+        else sizes = raw.replace(/ - /g, ',');
+      } else sizes = raw;
+    }
+
+    // Colors and images from embedded JSON array
+    const jsonMatch = text.match(/\[{"styleID":\d+.*?"HasAnyImage".*?\}\]/s);
+    if (!jsonMatch) throw new Error('Could not find color data. Make sure it is a product page.');
+    const colors = JSON.parse(jsonMatch[0]);
+
+    // Full color names and flat front images (no model)
+    const colorNames = colors.map(c => c.name);
+    const colorImages = colors.map(c => {
+      // Prefer flat front (Color/XXXX_f), fall back to model front
+      const flat = c.Images && c.Images.find(img => img.match(/Color\/\d+_f$/));
+      const model = c.Images && c.Images.find(img => img.match(/_omf$/));
+      const img = flat || model || (c.Images && c.Images[0]) || '';
+      return img ? `https://cdn.ssactivewear.com/Images/${img}_fm.jpg` : '';
+    });
+
+    // Main photo = flat front of first color
+    const mainPhoto = colorImages[0] || '';
+
+    // Gender from page category links
+    let gender = '', type = '';
+    if (/\/ps\/ladies|\/ps\/women/i.test(text)) gender = 'Womens';
+    else if (/\/ps\/youth/i.test(text)) gender = 'Kids';
+    else if (/\/ps\/mens/i.test(text)) gender = 'Mens';
+    if (!gender && /women|ladies/i.test(name)) gender = 'Womens';
+    else if (!gender && /youth|kid/i.test(name)) gender = 'Kids';
+    else if (!gender) gender = 'Mens';
+
+    // Type from category
+    if (/polos_knits|polo/i.test(text)) type = 'Polo';
+    else if (/sweatshirts_fleece|sweatshirt|hoodie/i.test(text)) type = 'Sweatshirt';
+    else if (/t_shirts/i.test(text)) type = 'Shirt';
+    else if (/outerwear-jackets/i.test(text)) type = 'Jacket';
+    else if (/outerwear-vests/i.test(text)) type = 'Vest';
+    else if (/headwear/i.test(text)) type = 'Hat';
+    else if (/accessories-bags/i.test(text)) type = 'Bag';
+    else if (/wovens/i.test(text)) type = 'Shirt';
+    else if (/zips/i.test(text)) type = 'Sweatshirt';
+
+    // Fill form
+    if (name)   document.getElementById('fName').value = name;
+    if (price)  document.getElementById('fCost').value = price;
+    if (sizes)  document.getElementById('fSizes').value = sizes;
+    if (gender) document.getElementById('fGender').value = gender;
+    if (type)   document.getElementById('fType').value = type;
+    buildColorPicker(colorNames, colorImages);
+    if (mainPhoto) document.getElementById('fPhotoDisplay').value = mainPhoto;
+
+    setImportStatus('Imported! ' + colors.length + ' colors — uncheck any you don't want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
+  } catch(e) {
+    setImportStatus('Error: ' + e.message, 'error');
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = 'Import';
+}
+
+function setImportStatus(msg, type) {
+  const el = document.getElementById('importStatus');
   if (!el) return;
   el.textContent = msg;
   el.className = 'import-status' + (type ? ' ' + type : '');
 }
+
+// ── SANMAR FULL IMPORTER ──────────────────────────────────────────────
+async function importFromSanmar() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url || !url.includes('sanmar.com')) {
+    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
+  }
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing...';
+  setSanmarStatus('Fetching product page...', '');
+
+  try {
+    const proxy = 'https://corsproxy.io/?';
+    const styleMatch = url.match(/\/p\/(\d+)/);
+    const styleNum = styleMatch ? styleMatch[1] : '';
+    if (!styleNum) throw new Error('Could not find style number in URL.');
+
+    const res = await fetch(proxy + encodeURIComponent(url));
+    const text = await res.text();
+
+    // Name from title tag
+    const titleMatch = text.match(/<title>([^<]+)<\/title>/);
+    let name = titleMatch ? titleMatch[1].replace(/\s*\|\s*.*$/, '').trim() : '';
+
+    // Price
+    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
+    const price = priceMatch ? priceMatch[1] : '';
+
+    // Sizes
+    const sizesMatch = text.match(/Sizes:\s*([A-Z0-9 -]+?)(?:<|\/)/);
+    let sizes = '';
+    if (sizesMatch) {
+      const raw = sizesMatch[1].trim();
+      const sizeOrder = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
+      const parts = raw.split('-').map(s => s.trim().replace(/[^A-Z0-9]/g,''));
+      if (parts.length === 2) {
+        const si = sizeOrder.indexOf(parts[0]);
+        const ei = sizeOrder.indexOf(parts[1]);
+        if (si !== -1 && ei !== -1) sizes = sizeOrder.slice(si, ei+1).join(',');
+        else sizes = raw.replace(/ - /g, ',');
+      } else sizes = raw;
+    }
+
+    // Find all color URL codes in page: /p/27873_ColorCode
+    const colorUrlRe = new RegExp('href="[^"]*\/p\/' + styleNum + '_([A-Za-z0-9]+)"', 'g');
+    const colorCodes = [];
+    let cm;
+    while ((cm = colorUrlRe.exec(text)) !== null) {
+      if (!colorCodes.includes(cm[1])) colorCodes.push(cm[1]);
+    }
+
+    if (!colorCodes.length) throw new Error('Could not find color variants. Make sure this is a SanMar product page.');
+
+    setSanmarStatus('Found ' + colorCodes.length + ' colors, fetching images...', '');
+
+    // Fetch each color page for name and flat front image
+    const colorResults = await Promise.all(colorCodes.map(async (code) => {
+      try {
+        const colorUrl = 'https://www.sanmar.com/p/' + styleNum + '_' + code;
+        const cRes = await fetch(proxy + encodeURIComponent(colorUrl));
+        const cText = await cRes.text();
+
+        // Color name from " in ColorName |" pattern in title
+        const cTitle = cText.match(/<title>([^<]+)<\/title>/);
+        let colorName = code;
+        if (cTitle) {
+          const inMatch = cTitle[1].match(/ in ([^|]+)\s*\|/i);
+          if (inMatch) colorName = inMatch[1].trim();
+        }
+
+        // Flat front image - look for FlatFront in img src or content
+        const flatMatch = cText.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                          cText.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                          cText.match(/(https:\/\/cdnp\.sanmar\.com[^\s"']*FlatFront[^\s"']*\.jpg)/i);
+        let imgUrl = flatMatch ? flatMatch[1] : '';
+
+        // og:image fallback
+        if (!imgUrl) {
+          const ogMatch = cText.match(/property="og:image"\s+content="([^"]+)"/) ||
+                          cText.match(/og:image[^>]*content="([^"]+)"/);
+          imgUrl = ogMatch ? ogMatch[1].trim() : '';
+        }
+
+        // Fix any double-protocol issues
+        imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?/, 'https://');
+
+        return { name: colorName, imgUrl };
+      } catch(e) {
+        return { name: code, imgUrl: '' };
+      }
+    }));
+
+    const colorNames  = colorResults.map(c => c.name);
+    const colorImages = colorResults.map(c => c.imgUrl);
+
+    if (name)  document.getElementById('fName').value = name;
+    if (price) document.getElementById('fCost').value = price;
+    if (sizes) document.getElementById('fSizes').value = sizes;
+    buildColorPicker(colorNames, colorImages);
+    if (colorImages[0]) document.getElementById('fPhotoDisplay').value = colorImages[0];
+
+    setSanmarStatus('Imported! ' + colorResults.length + ' colors — uncheck any you don't want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
+  } catch(e) {
+    setSanmarStatus('Error: ' + e.message, 'error');
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = 'Import';
+}
+
+function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
+
+function clearSanmarColors() {
+  setImportStatus('Paste a product URL from S&S Activewear or SanMar to auto-fill everything.', '');
+}
+
+// ── AUTH ─────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const pHash = await sha256(p);
+  if (u === CREDS.user && pHash === CREDS.passHash) {
+    document.getElementById('loginWrap').style.display = 'none';
+    const shell = document.getElementById('adminShell');
+    shell.style.display = 'flex';
+    sessionStorage.setItem('admin_auth', '1');
+    loadItems();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('admin_auth');
+  document.getElementById('adminShell').style.display = 'none';
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// Auto-login if session still active
+if (sessionStorage.getItem('admin_auth') === '1') {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('adminShell').style.display = 'flex';
+  loadItems();
+}
+
+// ── LOAD ITEMS ────────────────────────────────────────────────────────
+async function loadItems() {
+  document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">Loading items…</td></tr>';
+  try {
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=getCatalog');
+    const json = await res.json();
+    if (!json.rows || !json.rows.length) {
+      document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found.</td></tr>';
+      return;
+    }
+    const headers = json.headers.map(h => h.trim().toLowerCase());
+    const col = k => headers.indexOf(k);
+    const getVal = (row, k) => { const i = col(k); return i >= 0 && row[i] ? String(row[i]).trim() : ''; };
+
+    products = json.rows
+      .filter(row => getVal(row, 'item'))
+      .map((row, i) => ({
+        rowIdx:     i + 2,
+        name:       getVal(row, 'item'),
+        gender:     getVal(row, 'gender'),
+        type:       getVal(row, 'type'),
+        sizes:      getVal(row, 'size options'),
+        colors:     getVal(row, 'color options'),
+        cost:       getVal(row, 'cost'),
+        photo:      getVal(row, 'photo url'),
+        colorImgs:  getVal(row, 'color images'),
+        logoOpts:   getVal(row, 'logo options'),
+        logoImgs:   getVal(row, 'logo images'),
+        placements: getVal(row, 'placement options'),
+      }));
+    renderTable();
+  } catch(e) {
+    document.getElementById('itemsBody').innerHTML = `<tr class="loading-row"><td colspan="8" style="color:#b91c1c">Error: ${e.message}</td></tr>`;
+    console.error(e);
+  }
+}
+
+function driveUrl(url) {
+  if (!url) return '';
+  const m = url.match(/[-\w]{25,}/);
+  return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w80` : url;
+}
+
+// Convert any Google Drive share link to a clean embeddable URL for storage
+function cleanDriveUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  // If it's already a thumbnail or uc URL, extract the ID and reformat
+  const m = url.match(/[-\w]{25,}/);
+  if (!m) return url; // not a Drive link, return as-is
+  return `https://drive.google.com/uc?export=view&id=${m[0]}`;
+}
+
+// Convert a comma-separated list of URLs
+function cleanDriveUrls(str) {
+  if (!str) return '';
+  return str.split(',').map(u => cleanDriveUrl(u.trim())).join(',');
+}
+
+function renderTable() {
+  if (!products.length) {
+    document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found. Click "Add item" to get started.</td></tr>';
+    return;
+  }
+  const search = (document.getElementById('adminSearch')?.value || '').toLowerCase();
+  const filtered = products.filter(p =>
+    (p.name   ||'').toLowerCase().includes(search) ||
+    (p.gender ||'').toLowerCase().includes(search) ||
+    (p.type   ||'').toLowerCase().includes(search) ||
+    (p.colors ||'').toLowerCase().includes(search)
+  );
+  if (!filtered.length) {
+    document.getElementById('itemsBody').innerHTML = `<tr class="loading-row"><td colspan="8">No items match "${search}"</td></tr>`;
+    return;
+  }
+  document.getElementById('itemsBody').innerHTML = filtered.map((p) => {
+    const i = products.indexOf(p);
+    const thumb = p.photo
+      ? `<img class="item-thumb" src="${driveUrl(p.photo)}" alt="${p.name}" onerror="this.style.display='none'">`
+      : `<div class="item-thumb-placeholder"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div>`;
+    return `<tr>
+      <td style="padding-left:1.5rem">${thumb}</td>
+      <td><strong>${p.name}</strong></td>
+      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '—'}</td>
+      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.sizes  || 'One size'}</td>
+      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '—'}</strong></td>
+      <td class="col-actions">
+        <button class="edit-btn" onclick="openEditor(${i})">Edit</button>
+        <button class="delete-btn" onclick="deleteItem(${i})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EDITOR ────────────────────────────────────────────────────────────
+function openEditor(idx) {
+  editingIdx = idx;
+  document.getElementById('modalTitle').textContent = idx === null ? 'Add item' : 'Edit item';
+  const p = idx !== null ? products[idx] : {};
+  document.getElementById('fName').value        = p.name       || '';
+  document.getElementById('fCost').value        = p.cost       || '';
+  document.getElementById('fGender').value      = p.gender     || '';
+  document.getElementById('fType').value        = p.type       || '';
+  document.getElementById('fSizes').value       = p.sizes      || '';
+  document.getElementById('fColors').value      = p.colors     || '';
+  document.getElementById('fPhoto').value       = p.photo      || '';
+  document.getElementById('fColorImages').value = p.colorImgs  || '';
+  // Load existing colors into picker
+  const existingColors = (p.colors || '').split(',').map(c=>c.trim()).filter(Boolean);
+  const existingImgs = (p.colorImgs || '').split(',').map(u=>u.trim());
+  if (existingColors.length) {
+    buildColorPicker(existingColors, existingImgs);
+    document.getElementById('fPhotoDisplay').value = p.photo || '';
+  } else {
+    allColorData = [];
+    renderColorPicker();
+    document.getElementById('fPhotoDisplay').value = p.photo || '';
+    document.getElementById('fPhoto').value = p.photo || '';
+  }
+  document.getElementById('fLogoOptions').value = p.logoOpts   || '';
+  document.getElementById('fLogoImages').value  = p.logoImgs   || '';
+  document.getElementById('fPlacements').value  = p.placements || '';
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Reset color picker for new item
+  if (editingIdx === null) { allColorData = []; renderColorPicker(); document.getElementById('fPhotoDisplay').value = ''; document.getElementById('fPhoto').value = ''; }
+  // Reset import bar
+  document.getElementById('importUrl').value = '';
+  setImportStatus('Paste a product URL from S&S Activewear or SanMar to auto-fill everything.', '');
+}
+
+// ── SANMAR FULL IMPORTER ─────────────────────────────────────────────
+async function importFromSanmar() {
+  const url = document.getElementById('importUrl').value.trim();
+  if (!url || !url.includes('sanmar.com')) {
+    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
+  }
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing...';
+  setSanmarStatus('Fetching product page...', '');
+
+  try {
+    const proxy = 'https://corsproxy.io/?';
+
+    // Extract style number from URL e.g. /p/27873_BlkHthr → 27873
+    const styleMatch = url.match(/\/p\/(\d+)/);
+    const styleNum = styleMatch ? styleMatch[1] : '';
+    if (!styleNum) throw new Error('Could not find style number in URL.');
+
+    const res = await fetch(proxy + encodeURIComponent(url));
+    const text = await res.text();
+
+    // Name from <title> tag
+    const titleMatch = text.match(/<title>([^<]+)<\/title>/);
+    let name = titleMatch ? titleMatch[1].replace(/\s*\|.*$/, '').trim() : '';
+
+    // Price
+    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
+    const price = priceMatch ? priceMatch[1] : '';
+
+    // Sizes from page - look for size range text
+    const sizesMatch = text.match(/Sizes:\s*([A-Z0-9 -]+?)(?:<|\/)/);
+    let sizes = '';
+    if (sizesMatch) {
+      const raw = sizesMatch[1].trim();
+      const sizeOrder = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
+      const parts = raw.split('-').map(s => s.trim().replace(/[^A-Z0-9]/g,''));
+      if (parts.length === 2) {
+        const si = sizeOrder.indexOf(parts[0]);
+        const ei = sizeOrder.indexOf(parts[1]);
+        if (si !== -1 && ei !== -1) sizes = sizeOrder.slice(si, ei+1).join(',');
+        else sizes = raw.replace(/ - /g, ',');
+      } else sizes = raw;
+    }
+
+    // Find all color URLs in the page: /p/27873_ColorCode
+    const colorUrlRe = new RegExp('/p/' + styleNum + '_([A-Za-z0-9]+)', 'g');
+    const colorCodes = [];
+    let cm;
+    while ((cm = colorUrlRe.exec(text)) !== null) {
+      const code = cm[1];
+      if (!colorCodes.includes(code)) colorCodes.push(code);
+    }
+
+    if (!colorCodes.length) throw new Error('Could not find color variants. Make sure this is a SanMar product page.');
+
+    setSanmarStatus('Found ' + colorCodes.length + ' colors, fetching images...', '');
+
+    // Fetch each color page to get name and flat front image
+    const colorResults = await Promise.all(colorCodes.map(async (code) => {
+      try {
+        const colorUrl = 'https://www.sanmar.com/p/' + styleNum + '_' + code;
+        const cRes = await fetch(proxy + encodeURIComponent(colorUrl));
+        const cText = await cRes.text();
+
+        // Get color name from og:title or title tag
+        const cTitleMatch = cText.match(/<title>([^<]+)<\/title>/);
+        let colorName = code; // fallback to code
+        if (cTitleMatch) {
+          // Title format: "Brand Product Name in Color Name | SanMar"
+          const inMatch = cTitleMatch[1].match(/ in ([^|]+)/i);
+          if (inMatch) colorName = inMatch[1].trim();
+        }
+
+        // Get flat front image - look for FlatFront in img src
+        const flatMatch = cText.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                          cText.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                          cText.match(/(https:\/\/cdnp\.sanmar\.com[^"'\s]*FlatFront[^"'\s]*\.jpg)/i);
+        let imgUrl = flatMatch ? flatMatch[1] : '';
+
+        // Fix double protocol
+        imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?(cdnp)/, 'https://$2');
+
+        // Fallback to og:image if no flat front found
+        if (!imgUrl) {
+          const ogMatch = cText.match(/og:image[^>]*content="([^"]+)"/) ||
+                          cText.match(/<meta property="og:image" content="([^"]+)"/);
+          if (ogMatch) imgUrl = ogMatch[1].trim().replace(/^https?:\/\/[^/]+\/(\/)?(cdn)/, 'https://$2');
+        }
+
+        return { name: colorName, code, imgUrl };
+      } catch(e) {
+        return { name: code, code, imgUrl: '' };
+      }
+    }));
+
+    // Fill form
+    const colorNames = colorResults.map(c => c.name);
+    const colorImages = colorResults.map(c => c.imgUrl);
+
+    if (name) document.getElementById('fName').value = name;
+    if (price) document.getElementById('fCost').value = price;
+    if (sizes) document.getElementById('fSizes').value = sizes;
+    document.getElementById('fColors').value = colorNames.join(',');
+    document.getElementById('fColorImages').value = colorImages.join(',');
+    document.getElementById('fPhoto').value = colorImages[0] || '';
+
+    setSanmarStatus('Imported! ' + colorResults.length + ' colors found — fill in Gender, Type, Logos & Placement then save.', 'success');
+  } catch(e) {
+    setSanmarStatus('Error: ' + e.message, 'error');
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = 'Import';
+}
+
+function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
 
 function clearSanmarColors() { setSanmarStatus('Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.', ''); }
 
