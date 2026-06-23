@@ -670,6 +670,14 @@ async function importFromSanmar() {
   setImportStatus('Fetching SanMar product…', '');
 
   try {
+    // Helper available throughout this function
+    function ensureHttps(u) {
+      if (!u) return '';
+      if (u.startsWith('//')) return 'https:' + u;
+      if (!u.startsWith('http')) return 'https://www.sanmar.com' + u;
+      return u;
+    }
+
     // Extract /p/STYLE_COLOR path; normalise to www.sanmar.com for the proxy fetch
     const pathMatch = url.match(/\/p\/([^/?#]+)/);
     if (!pathMatch) throw new Error('Could not find product path in URL. Make sure it is a SanMar product page URL.');
@@ -678,9 +686,26 @@ async function importFromSanmar() {
 
     const fetchUrl = 'https://www.sanmar.com/p/' + productPath;
     setImportStatus('Fetching product page…', '');
-    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(fetchUrl));
-    if (!res.ok) throw new Error('Could not reach SanMar (HTTP ' + res.status + '). Try again in a moment.');
-    const text = await res.text();
+
+    // Try corsproxy.io first, fall back to allorigins.win
+    async function proxyFetch(targetUrl) {
+      const proxies = [
+        'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
+        'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl),
+      ];
+      for (const proxyUrl of proxies) {
+        try {
+          const r = await fetch(proxyUrl);
+          if (r.ok) {
+            const t = await r.text();
+            if (t.length > 5000) return t; // real page, not error page
+          }
+        } catch {}
+      }
+      throw new Error('Could not reach SanMar through either proxy. Check your internet connection and try again.');
+    }
+
+    const text = await proxyFetch(fetchUrl);
 
     // ── Product name ─────────────────────────────────────────────────
     const titleMatch = text.match(/<title>([^<]+)<\/title>/);
@@ -737,45 +762,68 @@ async function importFromSanmar() {
     else if (/shirt/i.test(name)) type = 'Shirt';
 
     // ── Colors ───────────────────────────────────────────────────────
-    // SanMar embeds color links as:
-    //   <a href="/p/1313_Black" ...><div class="pdp-color-image-holder"><img ... src="...50W_port_black...">
-    //   </div><p class="m-0">Black</p></a>
-    // We scrape ALL color <a> tags in the pdp-color-section-colors div.
-    // Each has: href="/p/STYLE_COLOR", color name in <p class="m-0">, swatch img src.
+    // SanMar HTML structure for each color:
+    //   <a href="/p/1313_Black" class="..." data-testid="pdp-color-link-option">
+    //     <div class="pdp-color-image-holder">
+    //       <img lazy="" src="//cdnp.sanmar.com/.../50W-port-black.gif" class="">
+    //     </div>
+    //     <p class="m-0">Black</p>
+    //   </a>
+    // Strategy: split on data-testid="pdp-color-link-option" to get each color block,
+    // then extract href and color name from each chunk. This avoids attribute-order issues.
 
     const colorData = [];
-    // Regex to match each color anchor block
-    // We look for the pattern: href="/p/STYLE_COLORNAME" ... img src="...swatch..." ... <p class="m-0">ColorName</p>
-    const colorBlockRe = /href="\/p\/([^"_]+_[^"]+)"[^>]*data-testid="pdp-color-link-option"[\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?<p class="m-0">([^<]+)<\/p>/g;
-    let m;
-    while ((m = colorBlockRe.exec(text)) !== null) {
-      const colorName = m[3].trim();
-      // Build a 1200W (large) flat-front image URL from the swatch (50W) URL
-      // Swatch: https://www.sanmar.com/medias/sys_master/.../50W_port_black/50W-port-black.gif
-      // Product images follow the pattern: 624Wx724H_STYLE_COLOR-12-STYLECOLORFlatFrontN
-      // We'll use the swatch URL as fallback and try to build a larger URL
-      const swatchUrl = m[2].startsWith('http') ? m[2] : 'https://www.sanmar.com' + m[2];
-      // Attempt to derive a flat-front CDN image for this color from the page
-      // (we'll pull them from the inline image tags that include "FlatFront" + the color code)
-      const colorPathPart = m[1].split('_').slice(1).join('_'); // e.g. "Black"
-      const flatFrontRe = new RegExp(
-        'src="((?:https://(?:www|cdnp)\\.sanmar\\.com)?[^"]*' + styleNumber + '[^"]*FlatFront[^"]*\\.jpg)"', 'i'
-      );
-      // Also try og:image which is the first-shown color's flat front
-      // We use the swatch as a reliable fallback; it displays fine in the color picker
-      colorData.push({ name: colorName, swatchUrl, colorPath: m[1] });
+    const seen = new Set();
+
+    // Split on each color anchor marker
+    const chunks = text.split('data-testid="pdp-color-link-option"');
+    // chunk[0] is before the first color; each subsequent chunk starts just after the testid attr
+    for (let ci = 1; ci < chunks.length; ci++) {
+      const chunk = chunks[ci];
+      // The closing </a> ends this color block
+      const blockEnd = chunk.indexOf('</a>');
+      const block = blockEnd >= 0 ? chunk.substring(0, blockEnd) : chunk.substring(0, 500);
+
+      // href is in the opening tag — look backwards into previous chunk for it
+      // (since data-testid can appear before or after href)
+      // Grab the tail of the preceding chunk up to the nearest <a opening
+      const prevChunk = chunks[ci - 1];
+      const lastAOpen = prevChunk.lastIndexOf('<a ');
+      const aTagChunk = prevChunk.substring(lastAOpen) + 'data-testid="pdp-color-link-option"' + block;
+
+      const hrefMatch = aTagChunk.match(/href="\/p\/([^"]+)"/);
+      if (!hrefMatch || !hrefMatch[1].includes('_')) continue;
+      const colorPath = hrefMatch[1]; // e.g. "1313_Black"
+
+      // Color name: <p class="m-0">Black</p>
+      const nameMatch = block.match(/<p[^>]*class="m-0"[^>]*>([^<]+)<\/p>/);
+      if (!nameMatch) continue;
+      const colorName = nameMatch[1].trim();
+
+      // Swatch image: src="//cdnp.sanmar.com/.../50W-port-black.gif"
+      const imgMatch = block.match(/src="([^"]+)"/);
+      const swatchUrl = imgMatch ? ensureHttps(imgMatch[1]) : '';
+
+      // Deduplicate (discontinued colors repeat the same product path with different wrappers)
+      if (seen.has(colorPath)) continue;
+      seen.add(colorPath);
+
+      colorData.push({ name: colorName, swatchUrl, colorPath });
     }
 
+    // ── Fallback: regex scan for href="/p/STYLE_COLOR" + color name ──
     if (!colorData.length) {
-      // Fallback: try a simpler pattern (color name in <p class="m-0"> adjacent to color anchor)
-      const simpleRe = /href="\/p\/([^"]+)"[^>]*>[^<]*<div[^>]*>[\s\S]*?<\/div>\s*<p class="m-0">([^<]+)<\/p>/g;
-      while ((m = simpleRe.exec(text)) !== null) {
-        if (!m[1].includes('_')) continue;
-        colorData.push({ name: m[2].trim(), swatchUrl: '', colorPath: m[1] });
+      const fbRe = /href="(\/p\/[^"]+_[^"]+)"[\s\S]{0,400}?<p[^>]*class="m-0"[^>]*>([^<]+)<\/p>/g;
+      let m;
+      while ((m = fbRe.exec(text)) !== null) {
+        const colorPath = m[1].replace(/^\/p\//, '');
+        if (seen.has(colorPath)) continue;
+        seen.add(colorPath);
+        colorData.push({ name: m[2].trim(), swatchUrl: '', colorPath });
       }
     }
 
-    if (!colorData.length) throw new Error('Could not find color data. Try opening the page in your browser first to confirm it loads, then paste the URL again.');
+    if (!colorData.length) throw new Error('Could not find color data. SanMar may have changed their page format — try the S&S Activewear URL for this product instead, or add colors manually.');
 
     setImportStatus('Found ' + colorData.length + ' colors — fetching images…', '');
 
@@ -784,9 +832,7 @@ async function importFromSanmar() {
     // We do them in parallel (capped at 4 at a time) to keep it fast.
     async function fetchColorImage(colorPath) {
       try {
-        const colorUrl = 'https://www.sanmar.com/p/' + colorPath;
-        const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(colorUrl));
-        const t = await r.text();
+        const t = await proxyFetch('https://www.sanmar.com/p/' + colorPath);
         // Flat front image (preferred)
         const ffMatch = t.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
                         t.match(/data-zoom="([^"]*FlatFront[^"]*\.jpg)"/i);
@@ -801,12 +847,6 @@ async function importFromSanmar() {
       } catch { return ''; }
     }
 
-    function ensureHttps(u) {
-      if (!u) return '';
-      if (u.startsWith('//')) return 'https:' + u;
-      if (!u.startsWith('http')) return 'https://www.sanmar.com' + u;
-      return u;
-    }
 
     // Parallel fetch with concurrency limit of 4
     async function pLimit(tasks, limit) {
