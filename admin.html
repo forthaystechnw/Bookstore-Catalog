@@ -741,7 +741,7 @@ async function importFromSS() {
     buildColorPicker(colorNames, colorImages);
     if (mainPhoto) document.getElementById('fPhotoDisplay').value = mainPhoto;
 
-    setImportStatus('Imported! ' + colors.length + ' colors — uncheck any you don't want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
+    setImportStatus('Imported! ' + colors.length + ' colors — uncheck any you do not want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
   } catch(e) {
     setImportStatus('Error: ' + e.message, 'error');
     console.error(e);
@@ -856,7 +856,7 @@ async function importFromSanmar() {
     buildColorPicker(colorNames, colorImages);
     if (colorImages[0]) document.getElementById('fPhotoDisplay').value = colorImages[0];
 
-    setSanmarStatus('Imported! ' + colorResults.length + ' colors — uncheck any you don't want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
+    setSanmarStatus('Imported! ' + colorResults.length + ' colors — uncheck any you do not want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
   } catch(e) {
     setSanmarStatus('Error: ' + e.message, 'error');
     console.error(e);
