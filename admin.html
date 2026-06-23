@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Bookstore Embroidery Catalog</title>
+<title>Admin - Bookstore Embroidery Catalog</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -158,7 +158,7 @@
   <div class="admin-layout">
     <div class="notice">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v4m0 4h.01"/></svg>
-      Changes made here update your Google Sheet directly. You can also edit the Sheet manually — both work.
+      Changes made here update your Google Sheet directly. You can also edit the Sheet manually - both work.
     </div>
 
     <div class="section">
@@ -206,7 +206,7 @@
     </div>
     <div class="modal-body">
       <div class="import-bar">
-        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear or SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional — or fill in manually below)</span></div>
+        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear or SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional - or fill in manually below)</span></div>
         <div class="import-row">
           <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/... or https://www.sanmar.com/p/...">
           <button class="import-btn" id="importBtn" onclick="autoImport()">Import</button>
@@ -232,11 +232,11 @@
         </div>
         <div class="form-group full">
           <div class="form-label">Size options</div>
-          <input class="form-input" type="text" id="fSizes" placeholder="XS,S,M,L,XL,XXL — leave blank if no sizes">
+          <input class="form-input" type="text" id="fSizes" placeholder="XS,S,M,L,XL,XXL - leave blank if no sizes">
           <div class="form-hint">Comma-separated. Leave blank for hats, bags, etc.</div>
         </div>
         <div class="form-group full">
-          <div class="form-label">Color options <span style="font-weight:400;text-transform:none;color:var(--muted)">— check colors to offer, uncheck to hide</span></div>
+          <div class="form-label">Color options <span style="font-weight:400;text-transform:none;color:var(--muted)">- check colors to offer, uncheck to hide</span></div>
           <div class="color-picker-actions">
             <button type="button" class="color-action-btn" onclick="selectAllColors()">Select all</button>
             <button type="button" class="color-action-btn" onclick="selectNoColors()">Deselect all</button>
@@ -248,7 +248,7 @@
           <input type="hidden" id="fPhoto">
         </div>
         <div class="form-group full">
-          <div class="form-label">Main photo URL <span style="font-weight:400;text-transform:none;color:var(--muted)">(auto-filled from first color — or paste your own)</span></div>
+          <div class="form-label">Main photo URL <span style="font-weight:400;text-transform:none;color:var(--muted)">(auto-filled from first color - or paste your own)</span></div>
           <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value">
           <div class="form-hint">Shown on the catalog card. If left blank, first color image is used.</div>
         </div>
@@ -413,11 +413,11 @@ function renderTable() {
     return `<tr>
       <td style="padding-left:1.5rem">${thumb}</td>
       <td><strong>${p.name}</strong></td>
-      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '—'}</td>
+      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">-</span>'}</td>
+      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">-</span>'}</td>
+      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '-'}</td>
       <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.sizes  || 'One size'}</td>
-      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '—'}</strong></td>
+      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '-'}</strong></td>
       <td class="col-actions">
         <button class="edit-btn" onclick="openEditor(${i})">Edit</button>
         <button class="delete-btn" onclick="deleteItem(${i})">✕</button>
@@ -464,121 +464,6 @@ function openEditor(idx) {
 }
 
 // ── SANMAR FULL IMPORTER ─────────────────────────────────────────────
-async function importFromSanmar() {
-  const url = document.getElementById('importUrl').value.trim();
-  if (!url || !url.includes('sanmar.com')) {
-    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
-  }
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Importing...';
-  setSanmarStatus('Fetching product page...', '');
-
-  try {
-    const proxy = 'https://corsproxy.io/?';
-
-    // Extract style number from URL e.g. /p/27873_BlkHthr → 27873
-    const styleMatch = url.match(/\/p\/(\d+)/);
-    const styleNum = styleMatch ? styleMatch[1] : '';
-    if (!styleNum) throw new Error('Could not find style number in URL.');
-
-    const res = await fetch(proxy + encodeURIComponent(url));
-    const text = await res.text();
-
-    // Name from <title> tag
-    const titleMatch = text.match(/<title>([^<]+)<\/title>/);
-    let name = titleMatch ? titleMatch[1].replace(/\s*\|.*$/, '').trim() : '';
-
-    // Price
-    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
-    const price = priceMatch ? priceMatch[1] : '';
-
-    // Sizes from page - look for size range text
-    const sizesMatch = text.match(/Sizes:\s*([A-Z0-9 -]+?)(?:<|\/)/);
-    let sizes = '';
-    if (sizesMatch) {
-      const raw = sizesMatch[1].trim();
-      const sizeOrder = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
-      const parts = raw.split('-').map(s => s.trim().replace(/[^A-Z0-9]/g,''));
-      if (parts.length === 2) {
-        const si = sizeOrder.indexOf(parts[0]);
-        const ei = sizeOrder.indexOf(parts[1]);
-        if (si !== -1 && ei !== -1) sizes = sizeOrder.slice(si, ei+1).join(',');
-        else sizes = raw.replace(/ - /g, ',');
-      } else sizes = raw;
-    }
-
-    // Find all color URLs in the page: /p/27873_ColorCode
-    const colorUrlRe = new RegExp('/p/' + styleNum + '_([A-Za-z0-9]+)', 'g');
-    const colorCodes = [];
-    let cm;
-    while ((cm = colorUrlRe.exec(text)) !== null) {
-      const code = cm[1];
-      if (!colorCodes.includes(code)) colorCodes.push(code);
-    }
-
-    if (!colorCodes.length) throw new Error('Could not find color variants. Make sure this is a SanMar product page.');
-
-    setSanmarStatus('Found ' + colorCodes.length + ' colors, fetching images...', '');
-
-    // Fetch each color page to get name and flat front image
-    const colorResults = await Promise.all(colorCodes.map(async (code) => {
-      try {
-        const colorUrl = 'https://www.sanmar.com/p/' + styleNum + '_' + code;
-        const cRes = await fetch(proxy + encodeURIComponent(colorUrl));
-        const cText = await cRes.text();
-
-        // Get color name from og:title or title tag
-        const cTitleMatch = cText.match(/<title>([^<]+)<\/title>/);
-        let colorName = code; // fallback to code
-        if (cTitleMatch) {
-          // Title format: "Brand Product Name in Color Name | SanMar"
-          const inMatch = cTitleMatch[1].match(/ in ([^|]+)/i);
-          if (inMatch) colorName = inMatch[1].trim();
-        }
-
-        // Get flat front image - look for FlatFront in img src
-        const flatMatch = cText.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/(https:\/\/cdnp\.sanmar\.com[^"'\s]*FlatFront[^"'\s]*\.jpg)/i);
-        let imgUrl = flatMatch ? flatMatch[1] : '';
-
-        // Fix double protocol
-        imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?(cdnp)/, 'https://$2');
-
-        // Fallback to og:image if no flat front found
-        if (!imgUrl) {
-          const ogMatch = cText.match(/og:image[^>]*content="([^"]+)"/) ||
-                          cText.match(/<meta property="og:image" content="([^"]+)"/);
-          if (ogMatch) imgUrl = ogMatch[1].trim().replace(/^https?:\/\/[^/]+\/(\/)?(cdn)/, 'https://$2');
-        }
-
-        return { name: colorName, code, imgUrl };
-      } catch(e) {
-        return { name: code, code, imgUrl: '' };
-      }
-    }));
-
-    // Fill form
-    const colorNames = colorResults.map(c => c.name);
-    const colorImages = colorResults.map(c => c.imgUrl);
-
-    if (name) document.getElementById('fName').value = name;
-    if (price) document.getElementById('fCost').value = price;
-    if (sizes) document.getElementById('fSizes').value = sizes;
-    document.getElementById('fColors').value = colorNames.join(',');
-    document.getElementById('fColorImages').value = colorImages.join(',');
-    document.getElementById('fPhoto').value = colorImages[0] || '';
-
-    setSanmarStatus('Imported! ' + colorResults.length + ' colors found — fill in Gender, Type, Logos & Placement then save.', 'success');
-  } catch(e) {
-    setSanmarStatus('Error: ' + e.message, 'error');
-    console.error(e);
-  }
-  btn.disabled = false; btn.textContent = 'Import';
-}
-
-function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
-
 function clearSanmarColors() { setSanmarStatus('Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.', ''); }
 
 // ── COLOR PICKER ─────────────────────────────────────────────────────
@@ -741,7 +626,7 @@ async function importFromSS() {
     buildColorPicker(colorNames, colorImages);
     if (mainPhoto) document.getElementById('fPhotoDisplay').value = mainPhoto;
 
-    setImportStatus('Imported! ' + colors.length + ' colors — uncheck any you do not want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
+    setImportStatus('Imported! ' + colors.length + ' colors - uncheck any you do not want to offer, then fill in Gender/Type/Logos/Placement and save.', 'success');
   } catch(e) {
     setImportStatus('Error: ' + e.message, 'error');
     console.error(e);
@@ -856,7 +741,7 @@ async function importFromSanmar() {
     buildColorPicker(colorNames, colorImages);
     if (colorImages[0]) document.getElementById('fPhotoDisplay').value = colorImages[0];
 
-    setSanmarStatus('Imported! ' + colorResults.length + ' colors — uncheck any you do not want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
+    setSanmarStatus('Imported! ' + colorResults.length + ' colors - uncheck any you do not want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
   } catch(e) {
     setSanmarStatus('Error: ' + e.message, 'error');
     console.error(e);
@@ -953,11 +838,11 @@ function renderTable() {
     return `<tr>
       <td style="padding-left:1.5rem">${thumb}</td>
       <td><strong>${p.name}</strong></td>
-      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '—'}</td>
+      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">-</span>'}</td>
+      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">-</span>'}</td>
+      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '-'}</td>
       <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.sizes  || 'One size'}</td>
-      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '—'}</strong></td>
+      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '-'}</strong></td>
       <td class="col-actions">
         <button class="edit-btn" onclick="openEditor(${i})">Edit</button>
         <button class="delete-btn" onclick="deleteItem(${i})">✕</button>
@@ -1004,244 +889,12 @@ function openEditor(idx) {
 }
 
 // ── SANMAR FULL IMPORTER ─────────────────────────────────────────────
-async function importFromSanmar() {
-  const url = document.getElementById('importUrl').value.trim();
-  if (!url || !url.includes('sanmar.com')) {
-    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
-  }
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Importing...';
-  setSanmarStatus('Fetching product page...', '');
-
-  try {
-    const proxy = 'https://corsproxy.io/?';
-
-    // Extract style number from URL e.g. /p/27873_BlkHthr → 27873
-    const styleMatch = url.match(/\/p\/(\d+)/);
-    const styleNum = styleMatch ? styleMatch[1] : '';
-    if (!styleNum) throw new Error('Could not find style number in URL.');
-
-    const res = await fetch(proxy + encodeURIComponent(url));
-    const text = await res.text();
-
-    // Name from <title> tag
-    const titleMatch = text.match(/<title>([^<]+)<\/title>/);
-    let name = titleMatch ? titleMatch[1].replace(/\s*\|.*$/, '').trim() : '';
-
-    // Price
-    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
-    const price = priceMatch ? priceMatch[1] : '';
-
-    // Sizes from page - look for size range text
-    const sizesMatch = text.match(/Sizes:\s*([A-Z0-9 -]+?)(?:<|\/)/);
-    let sizes = '';
-    if (sizesMatch) {
-      const raw = sizesMatch[1].trim();
-      const sizeOrder = ['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
-      const parts = raw.split('-').map(s => s.trim().replace(/[^A-Z0-9]/g,''));
-      if (parts.length === 2) {
-        const si = sizeOrder.indexOf(parts[0]);
-        const ei = sizeOrder.indexOf(parts[1]);
-        if (si !== -1 && ei !== -1) sizes = sizeOrder.slice(si, ei+1).join(',');
-        else sizes = raw.replace(/ - /g, ',');
-      } else sizes = raw;
-    }
-
-    // Find all color URLs in the page: /p/27873_ColorCode
-    const colorUrlRe = new RegExp('/p/' + styleNum + '_([A-Za-z0-9]+)', 'g');
-    const colorCodes = [];
-    let cm;
-    while ((cm = colorUrlRe.exec(text)) !== null) {
-      const code = cm[1];
-      if (!colorCodes.includes(code)) colorCodes.push(code);
-    }
-
-    if (!colorCodes.length) throw new Error('Could not find color variants. Make sure this is a SanMar product page.');
-
-    setSanmarStatus('Found ' + colorCodes.length + ' colors, fetching images...', '');
-
-    // Fetch each color page to get name and flat front image
-    const colorResults = await Promise.all(colorCodes.map(async (code) => {
-      try {
-        const colorUrl = 'https://www.sanmar.com/p/' + styleNum + '_' + code;
-        const cRes = await fetch(proxy + encodeURIComponent(colorUrl));
-        const cText = await cRes.text();
-
-        // Get color name from og:title or title tag
-        const cTitleMatch = cText.match(/<title>([^<]+)<\/title>/);
-        let colorName = code; // fallback to code
-        if (cTitleMatch) {
-          // Title format: "Brand Product Name in Color Name | SanMar"
-          const inMatch = cTitleMatch[1].match(/ in ([^|]+)/i);
-          if (inMatch) colorName = inMatch[1].trim();
-        }
-
-        // Get flat front image - look for FlatFront in img src
-        const flatMatch = cText.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/(https:\/\/cdnp\.sanmar\.com[^"'\s]*FlatFront[^"'\s]*\.jpg)/i);
-        let imgUrl = flatMatch ? flatMatch[1] : '';
-
-        // Fix double protocol
-        imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?(cdnp)/, 'https://$2');
-
-        // Fallback to og:image if no flat front found
-        if (!imgUrl) {
-          const ogMatch = cText.match(/og:image[^>]*content="([^"]+)"/) ||
-                          cText.match(/<meta property="og:image" content="([^"]+)"/);
-          if (ogMatch) imgUrl = ogMatch[1].trim().replace(/^https?:\/\/[^/]+\/(\/)?(cdn)/, 'https://$2');
-        }
-
-        return { name: colorName, code, imgUrl };
-      } catch(e) {
-        return { name: code, code, imgUrl: '' };
-      }
-    }));
-
-    // Fill form
-    const colorNames = colorResults.map(c => c.name);
-    const colorImages = colorResults.map(c => c.imgUrl);
-
-    if (name) document.getElementById('fName').value = name;
-    if (price) document.getElementById('fCost').value = price;
-    if (sizes) document.getElementById('fSizes').value = sizes;
-    document.getElementById('fColors').value = colorNames.join(',');
-    document.getElementById('fColorImages').value = colorImages.join(',');
-    document.getElementById('fPhoto').value = colorImages[0] || '';
-
-    setSanmarStatus('Imported! ' + colorResults.length + ' colors found — fill in Gender, Type, Logos & Placement then save.', 'success');
-  } catch(e) {
-    setSanmarStatus('Error: ' + e.message, 'error');
-    console.error(e);
-  }
-  btn.disabled = false; btn.textContent = 'Import';
-}
-
-function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
-
 function clearSanmarColors() { setSanmarStatus('Paste any SanMar product URL to auto-fill name, all colors, sizes, images and price.', ''); }
 
 // ── S&S IMPORT ────────────────────────────────────────────────────────
-async function importFromSS() {
-  const url = document.getElementById('importUrl').value.trim();
-  if (!url || !url.includes('ssactivewear.com')) {
-    setImportStatus('Please paste a valid S&S Activewear product URL.', 'error');
-    return;
-  }
 
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Importing…';
-  setImportStatus('Fetching product data…', '');
 
-  try {
-    // Use a CORS proxy to fetch the SS page
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    const res = await fetch(proxyUrl);
-    const text = await res.text();
 
-    // Extract the color JSON array embedded in the page
-    const colorMatch = text.match(/\[\{"styleID":\d+.*?"HasAnyImage".*?\}\]/s);
-    if (!colorMatch) throw new Error('Could not find color data on this page. Make sure it is a product page.');
-    const colors = JSON.parse(colorMatch[0]);
-
-    // Extract product name
-    const nameMatch = text.match(/<h1[^>]*>[\s\S]*?<\/h1>/i);
-    let name = '';
-    if (nameMatch) {
-      name = nameMatch[0].replace(/<[^>]+>/g, '').trim();
-      name = name.replace(/^[A-Z&.\s]+ - /, '').trim();
-    }
-
-    // Extract price
-    const priceMatch = text.match(/Starting at \$([0-9.]+)/);
-    const price = priceMatch ? priceMatch[1] : '';
-
-    // Extract sizes
-    const sizesMatch = text.match(/Sizes:\s*([^<\n]+)/);
-    let sizes = '';
-    if (sizesMatch) {
-      const sizeRange = sizesMatch[1].trim();
-      const sizeOrder = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','XXL','3XL','4XL','5XL'];
-      const parts = sizeRange.split('-').map(s=>s.trim());
-      if (parts.length === 2) {
-        const startIdx = sizeOrder.indexOf(parts[0]);
-        const endIdx   = sizeOrder.indexOf(parts[1]);
-        if (startIdx !== -1 && endIdx !== -1) {
-          sizes = sizeOrder.slice(startIdx, endIdx+1).join(',');
-        } else {
-          sizes = sizeRange.replace(/ - /g, ',');
-        }
-      } else {
-        sizes = sizeRange;
-      }
-    }
-
-    // Extract gender from breadcrumb/category
-    let gender = '';
-    let type = '';
-    const breadcrumb = text.match(/ps\/([a-z_]+)["']/);
-    if (breadcrumb) {
-      const cat = breadcrumb[1].toLowerCase();
-      if (cat.includes('ladies') || cat.includes('women')) gender = 'Womens';
-      else if (cat.includes('youth')) gender = 'Kids';
-      else if (cat.includes('mens') || cat.includes('unisex')) gender = 'Mens';
-    }
-    // Try to get gender from name
-    if (!gender) {
-      if (/women|ladies/i.test(name)) gender = 'Womens';
-      else if (/youth|kid|girl|boy/i.test(name)) gender = 'Kids';
-      else if (/men.s|unisex/i.test(name)) gender = 'Mens';
-    }
-    // Extract type from category path
-    const typeMatch = text.match(/ps\/(?:[a-z_]+-)?([a-z_]+)["']/);
-    if (typeMatch) {
-      const t = typeMatch[1].toLowerCase();
-      if (t.includes('polo') || t.includes('shirt') || t.includes('tshirt') || t.includes('woven')) type = 'Shirt';
-      else if (t.includes('jacket') || t.includes('vest') || t.includes('outerwear')) type = 'Jacket';
-      else if (t.includes('sweatshirt') || t.includes('fleece') || t.includes('hoodie') || t.includes('zip')) type = 'Sweatshirt';
-      else if (t.includes('cap') || t.includes('hat') || t.includes('headwear')) type = 'Hat';
-      else if (t.includes('bag') || t.includes('tote') || t.includes('backpack')) type = 'Bag';
-      else if (t.includes('pant') || t.includes('short') || t.includes('bottom')) type = 'Bottoms';
-    }
-
-    // Build color names and image URLs
-    const colorNames = colors.map(c => c.name);
-    const colorImages = colors.map(c => {
-      // Prefer flat front image (no model), fall back to model front
-      const flatImg = c.Images && c.Images.find(img => img.match(/Color\/\d+_f$/));
-      const modelImg = c.Images && c.Images.find(img => img.match(/_omf$/));
-      const img = flatImg || modelImg || (c.Images && c.Images[0]);
-      return img ? `https://cdn.ssactivewear.com/Images/${img}_fm.jpg` : '';
-    });
-
-    // Use first color flat image as main photo
-    const mainPhoto = colorImages[0] || '';
-
-    // Fill in form fields
-    if (name) document.getElementById('fName').value = name;
-    if (price) document.getElementById('fCost').value = price;
-    if (sizes) document.getElementById('fSizes').value = sizes;
-    if (gender) document.getElementById('fGender').value = gender;
-    if (type) document.getElementById('fType').value = type;
-    document.getElementById('fColors').value = colorNames.join(',');
-    document.getElementById('fPhoto').value = mainPhoto;
-    document.getElementById('fColorImages').value = colorImages.join(',');
-
-    setImportStatus(`✓ Imported! Found ${colors.length} color${colors.length!==1?'s':''} — review and fill in Gender, Type, Logos & Placement below.`, 'success');
-  } catch(e) {
-    setImportStatus(`Error: ${e.message}`, 'error');
-    console.error(e);
-  }
-
-  btn.disabled = false; btn.textContent = 'Import';
-}
-
-function setImportStatus(msg, type) {
-  const el = document.getElementById('importStatus');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'import-status' + (type ? ' '+type : '');
-}
 
 function closeEditor() {
   document.getElementById('overlay').classList.remove('open');
@@ -1287,7 +940,7 @@ async function saveItem() {
       showToast('Save failed. Check your Apps Script URL.', 'error');
     }
   } else {
-    // No script yet — update local state only and show instructions
+    // No script yet - update local state only and show instructions
     if (editingIdx !== null) {
       products[editingIdx] = { ...products[editingIdx], ...item };
     } else {
