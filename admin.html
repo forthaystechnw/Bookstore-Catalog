@@ -657,20 +657,26 @@ async function importFromSanmar() {
   }
   const btn = document.getElementById('importBtn');
   btn.disabled = true; btn.textContent = 'Importing...';
-  setSanmarStatus('Fetching product page...', '');
+  setSanmarStatus('Fetching color...', '');
 
   try {
-    const proxy = 'https://corsproxy.io/?';
-    const styleMatch = url.match(/\/p\/(\d+)/);
-    const styleNum = styleMatch ? styleMatch[1] : '';
-    if (!styleNum) throw new Error('Could not find style number in URL.');
+    // Extract color code from URL e.g. /p/1313_Black or /p/27873_BlkHthr
+    const colorCodeMatch = url.match(/\/p\/[^_]+_(.+)$/);
+    const colorCode = colorCodeMatch ? colorCodeMatch[1] : '';
+    if (!colorCode) throw new Error('Could not find color in URL. Make sure URL ends in _ColorName e.g. /p/1313_Black');
 
-    const res = await fetch(proxy + encodeURIComponent(url));
-    const text = await res.text();
+    // Use Apps Script as server-side proxy (avoids CORS and JS rendering issues)
+    const proxyRes = await fetch(ADMIN_SCRIPT_URL + '?action=fetchPage&url=' + encodeURIComponent(url));
+    const proxyData = await proxyRes.json();
+    if (proxyData.error) throw new Error('Fetch failed: ' + proxyData.error);
+    const text = proxyData.html || '';
 
-    // Name from title tag
+    // Name from title - remove " in ColorName | SanMar" suffix
     const titleMatch = text.match(/<title>([^<]+)<\/title>/);
-    let name = titleMatch ? titleMatch[1].replace(/\s*\|\s*.*$/, '').trim() : '';
+    let name = '';
+    if (titleMatch) {
+      name = titleMatch[1].replace(/\s+in\s+[^|]+\s*\|\s*.*/i, '').replace(/\s*\|\s*.*/,'').trim();
+    }
 
     // Price
     const priceMatch = text.match(/Starting at \$([0-9.]+)/);
@@ -691,65 +697,47 @@ async function importFromSanmar() {
       } else sizes = raw;
     }
 
-    // Find all color URL codes in page: /p/27873_ColorCode
-    const colorUrlRe = new RegExp('href="[^"]*\/p\/' + styleNum + '_([A-Za-z0-9]+)"', 'g');
-    const colorCodes = [];
-    let cm;
-    while ((cm = colorUrlRe.exec(text)) !== null) {
-      if (!colorCodes.includes(cm[1])) colorCodes.push(cm[1]);
+    // Color name from title " in ColorName |"
+    let colorName = colorCode.replace(/([A-Z])/g, ' $1').trim();
+    if (titleMatch) {
+      const inMatch = titleMatch[1].match(/ in ([^|]+)\s*\|/i);
+      if (inMatch) colorName = inMatch[1].trim();
     }
 
-    if (!colorCodes.length) throw new Error('Could not find color variants. Make sure this is a SanMar product page.');
+    // Flat front image
+    const flatMatch = text.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                      text.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
+                      text.match(/(https:\/\/cdnp\.sanmar\.com[^\s"']*FlatFront[^\s"']*\.jpg)/i);
+    let imgUrl = flatMatch ? flatMatch[1] : '';
 
-    setSanmarStatus('Found ' + colorCodes.length + ' colors, fetching images...', '');
+    // og:image fallback
+    if (!imgUrl) {
+      const ogMatch = text.match(/property="og:image"\s+content="([^"]+)"/) ||
+                      text.match(/og:image[^>]*content="([^"]+)"/);
+      imgUrl = ogMatch ? ogMatch[1].trim() : '';
+    }
+    imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?/, 'https://');
 
-    // Fetch each color page for name and flat front image
-    const colorResults = await Promise.all(colorCodes.map(async (code) => {
-      try {
-        const colorUrl = 'https://www.sanmar.com/p/' + styleNum + '_' + code;
-        const cRes = await fetch(proxy + encodeURIComponent(colorUrl));
-        const cText = await cRes.text();
+    // Add to color picker (or update if already exists)
+    const existingIdx = allColorData.findIndex(c => c.name === colorName);
+    if (existingIdx >= 0) {
+      allColorData[existingIdx].imgUrl = imgUrl;
+    } else {
+      allColorData.push({ name: colorName, imgUrl, checked: true });
+    }
+    renderColorPicker();
+    syncColorFields();
 
-        // Color name from " in ColorName |" pattern in title
-        const cTitle = cText.match(/<title>([^<]+)<\/title>/);
-        let colorName = code;
-        if (cTitle) {
-          const inMatch = cTitle[1].match(/ in ([^|]+)\s*\|/i);
-          if (inMatch) colorName = inMatch[1].trim();
-        }
+    // Fill name/price/sizes only if not already filled
+    if (name && !document.getElementById('fName').value) document.getElementById('fName').value = name;
+    if (price && !document.getElementById('fCost').value) document.getElementById('fCost').value = price;
+    if (sizes && !document.getElementById('fSizes').value) document.getElementById('fSizes').value = sizes;
+    if (imgUrl && !document.getElementById('fPhotoDisplay').value) document.getElementById('fPhotoDisplay').value = imgUrl;
 
-        // Flat front image - look for FlatFront in img src or content
-        const flatMatch = cText.match(/src="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/content="([^"]*FlatFront[^"]*\.jpg)"/i) ||
-                          cText.match(/(https:\/\/cdnp\.sanmar\.com[^\s"']*FlatFront[^\s"']*\.jpg)/i);
-        let imgUrl = flatMatch ? flatMatch[1] : '';
+    // Clear URL field ready for next color
+    document.getElementById('importUrl').value = '';
+    setSanmarStatus('Added "' + colorName + '"! Paste the next color URL, or switch to S&S.', 'success');
 
-        // og:image fallback
-        if (!imgUrl) {
-          const ogMatch = cText.match(/property="og:image"\s+content="([^"]+)"/) ||
-                          cText.match(/og:image[^>]*content="([^"]+)"/);
-          imgUrl = ogMatch ? ogMatch[1].trim() : '';
-        }
-
-        // Fix any double-protocol issues
-        imgUrl = imgUrl.replace(/^https?:\/\/[^/]+\/(\/)?/, 'https://');
-
-        return { name: colorName, imgUrl };
-      } catch(e) {
-        return { name: code, imgUrl: '' };
-      }
-    }));
-
-    const colorNames  = colorResults.map(c => c.name);
-    const colorImages = colorResults.map(c => c.imgUrl);
-
-    if (name)  document.getElementById('fName').value = name;
-    if (price) document.getElementById('fCost').value = price;
-    if (sizes) document.getElementById('fSizes').value = sizes;
-    buildColorPicker(colorNames, colorImages);
-    if (colorImages[0]) document.getElementById('fPhotoDisplay').value = colorImages[0];
-
-    setSanmarStatus('Imported! ' + colorResults.length + ' colors - uncheck any you do not want to offer, then fill in Gender, Type, Logos & Placement and save.', 'success');
   } catch(e) {
     setSanmarStatus('Error: ' + e.message, 'error');
     console.error(e);
