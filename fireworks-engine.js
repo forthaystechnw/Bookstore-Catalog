@@ -1,9 +1,10 @@
 /**
  * Fireworks Click Overlay — engine only
  * --------------------------------------
- * This file is loaded dynamically by index.html ONLY when the admin has
- * turned fireworks on (via the toggle in admin.html). It has no on/off
- * logic of its own and no exit button — visitors can't turn it off.
+ * Loaded dynamically by index.html ONLY when the admin has turned
+ * fireworks on (via the toggle in admin.html). The canvas now captures
+ * clicks/taps itself (pointer-events: auto) so visitors can't
+ * accidentally click products underneath while this is active.
  */
 (function () {
   // Subtle dark tint over the whole page so visitors sense something
@@ -34,7 +35,7 @@
   canvas.id = 'fireworks-canvas';
   canvas.style.cssText =
     'position:fixed;top:0;left:0;width:100vw;height:100vh;' +
-    'pointer-events:none;z-index:9999;';
+    'pointer-events:auto;z-index:9999;cursor:pointer;';
   document.body.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
@@ -49,6 +50,45 @@
   const colors = ['#fbbe00', '#ff5e5e', '#5ec8ff', '#8effa1', '#ff8ef0', '#ffffff'];
   let particles = [];
   let rockets = [];
+
+  // ── Burst sound, synthesized on the fly (no audio file needed) ──
+  let audioCtx;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function playBurstSound() {
+    const ac = getAudioCtx();
+    const duration = 0.35;
+    const bufferSize = Math.floor(ac.sampleRate * duration);
+    const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // Decaying white noise = the "crackle" of a firework pop
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    }
+
+    const noise = ac.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ac.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 700 + Math.random() * 800; // varies a bit each time
+    filter.Q.value = 0.6;
+
+    const gainNode = ac.createGain();
+    gainNode.gain.setValueAtTime(0.3, ac.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+
+    noise.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ac.destination);
+    noise.start();
+    noise.stop(ac.currentTime + duration);
+  }
 
   function launchRocket(targetX, targetY) {
     const startX = targetX + (Math.random() * 60 - 30);
@@ -69,6 +109,7 @@
   }
 
   function burst(x, y) {
+    playBurstSound();
     const count = 40 + Math.floor(Math.random() * 20);
     const baseColor = colors[Math.floor(Math.random() * colors.length)];
     for (let i = 0; i < count; i++) {
@@ -151,10 +192,16 @@
   }
   animate();
 
-  document.addEventListener('click', (e) => launchRocket(e.clientX, e.clientY));
-  document.addEventListener('touchstart', (e) => {
+  function handlePointer(x, y) {
+    const ac = getAudioCtx();
+    if (ac.state === 'suspended') ac.resume();
+    launchRocket(x, y);
+  }
+
+  canvas.addEventListener('click', (e) => handlePointer(e.clientX, e.clientY));
+  canvas.addEventListener('touchstart', (e) => {
     for (const touch of e.changedTouches) {
-      launchRocket(touch.clientX, touch.clientY);
+      handlePointer(touch.clientX, touch.clientY);
     }
   }, { passive: true });
 })();
