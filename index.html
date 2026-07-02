@@ -894,6 +894,23 @@ async function submitAll() {
 })();
 
 loadProducts();
+
+// ── FIREWORKS (admin-controlled) ───────────────────────────────────────
+// Checks the on/off setting the admin controls from admin.html. Only
+// loads the effect if it's turned on — nothing loads otherwise.
+(async function loadFireworksIfEnabled() {
+  try {
+    const res = await fetch(SUBMIT_URL + '?action=getSettings');
+    const json = await res.json();
+    if (json.fireworksEnabled) {
+      const s = document.createElement('script');
+      s.src = 'fireworks-engine.js';
+      document.body.appendChild(s);
+    }
+  } catch (e) {
+    console.warn('Could not check fireworks setting:', e);
+  }
+})();
 </script>
 </body>
 </html>

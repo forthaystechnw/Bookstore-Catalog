@@ -37,6 +37,14 @@
   .header-tag { font-size: 12px; font-weight: 600; background: #1a1a1a; color: #fff; border-radius: 6px; padding: 4px 12px; }
   .logout-btn { background: transparent; border: 1.5px solid #1a1a1a; border-radius: 8px; padding: 5px 14px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
   .logout-btn:hover { background: #1a1a1a; color: #fff; }
+  .fw-toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+  .fw-toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .fw-toggle input { opacity: 0; width: 0; height: 0; }
+  .fw-toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 24px; transition: 0.2s; }
+  .fw-toggle-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .fw-toggle input:checked + .fw-toggle-slider { background: #1a1a1a; }
+  .fw-toggle input:checked + .fw-toggle-slider:before { transform: translateX(18px); }
+  .fw-toggle input:disabled + .fw-toggle-slider { opacity: 0.5; cursor: wait; }
 
   /* LAYOUT */
   .admin-layout { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; flex: 1; overflow: hidden; }
@@ -150,6 +158,13 @@
     </div>
     <div class="header-right">
       <div class="header-tag">Admin Panel</div>
+      <div class="fw-toggle-wrap">
+        <span>🎆 Fireworks</span>
+        <label class="fw-toggle">
+          <input type="checkbox" id="fireworksToggle" onchange="setFireworksEnabled(this.checked)" disabled>
+          <span class="fw-toggle-slider"></span>
+        </label>
+      </div>
       <a href="index.html" target="_blank" style="font-size:13px;font-weight:500;color:#1a1a1a;text-decoration:none">View catalog ↗</a>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
@@ -313,6 +328,7 @@ async function doLogin() {
     shell.style.display = 'flex';
     sessionStorage.setItem('admin_auth', '1');
     loadItems();
+    loadFireworksState();
   } else {
     document.getElementById('loginError').style.display = 'block';
   }
@@ -331,6 +347,39 @@ if (sessionStorage.getItem('admin_auth') === '1') {
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('adminShell').style.display = 'flex';
   loadItems();
+  loadFireworksState();
+}
+
+// ── FIREWORKS TOGGLE ────────────────────────────────────────────────
+async function loadFireworksState() {
+  const toggle = document.getElementById('fireworksToggle');
+  try {
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=getSettings');
+    const json = await res.json();
+    toggle.checked = !!json.fireworksEnabled;
+  } catch (e) {
+    console.error('Could not load fireworks setting:', e);
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
+async function setFireworksEnabled(enabled) {
+  const toggle = document.getElementById('fireworksToggle');
+  toggle.disabled = true;
+  try {
+    await fetch(ADMIN_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'setFireworks', enabled })
+    });
+    showToast(enabled ? 'Fireworks turned ON for the shop page 🎆' : 'Fireworks turned off', 'success');
+  } catch (e) {
+    showToast('Could not update fireworks setting.', 'error');
+    toggle.checked = !enabled; // revert the switch visually
+  } finally {
+    toggle.disabled = false;
+  }
 }
 
 // ── LOAD ITEMS ────────────────────────────────────────────────────────
