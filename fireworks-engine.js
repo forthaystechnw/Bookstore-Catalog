@@ -8,8 +8,7 @@
  */
 (function () {
   // Subtle dark tint over the whole page so visitors sense something
-  // interactive is layered on top. Sits below the canvas, doesn't block
-  // clicks (they pass through to the fireworks listener on document).
+  // interactive is layered on top. Sits below the canvas.
   const overlay = document.createElement('div');
   overlay.id = 'fireworks-dim-overlay';
   overlay.style.cssText =
@@ -30,6 +29,18 @@
   // Fade the hint out after a few seconds so it doesn't linger forever.
   setTimeout(() => { hint.style.opacity = '0'; }, 4000);
   setTimeout(() => hint.remove(), 6000);
+
+  const exitBtn = document.createElement('button');
+  exitBtn.id = 'fireworks-exit-btn';
+  exitBtn.textContent = '✕ Exit Fireworks';
+  exitBtn.style.cssText =
+    'position:fixed;top:16px;right:16px;z-index:10001;pointer-events:auto;' +
+    'background:#fbbe00;color:#1a1a1a;border:none;border-radius:6px;' +
+    'padding:8px 14px;font-size:14px;font-weight:600;font-family:sans-serif;' +
+    'cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.4);';
+  exitBtn.addEventListener('mouseenter', () => (exitBtn.style.background = '#ffd347'));
+  exitBtn.addEventListener('mouseleave', () => (exitBtn.style.background = '#fbbe00'));
+  document.body.appendChild(exitBtn);
 
   const canvas = document.createElement('canvas');
   canvas.id = 'fireworks-canvas';
@@ -127,7 +138,11 @@
     }
   }
 
+  let running = true;
+
   function animate() {
+    if (!running) return;
+
     const somethingActive = particles.length > 0 || rockets.length > 0;
 
     if (somethingActive) {
@@ -204,4 +219,15 @@
       handlePointer(touch.clientX, touch.clientY);
     }
   }, { passive: true });
+
+  exitBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    running = false;
+    particles = [];
+    rockets = [];
+    overlay.remove();
+    hint.remove();
+    canvas.remove();
+    exitBtn.remove();
+  });
 })();
