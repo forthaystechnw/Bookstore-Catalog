@@ -7,6 +7,8 @@
  * accidentally click products underneath while this is active.
  */
 (function () {
+  console.log('[fireworks-engine] loaded — v4 (sound + exit button + no auto-fade)');
+
   // Subtle dark tint over the whole page so visitors sense something
   // interactive is layered on top. Sits below the canvas.
   const overlay = document.createElement('div');
@@ -25,10 +27,9 @@
     'z-index:10000;pointer-events:none;background:rgba(0,0,0,0.6);' +
     'color:#fff;font-family:sans-serif;font-size:13px;font-weight:600;' +
     'padding:8px 16px;border-radius:20px;transition:opacity 1.5s ease;';
+  // Hint badge stays visible until the exit button is clicked —
+  // no auto-fade anymore.
   document.body.appendChild(hint);
-  // Fade the hint out after a few seconds so it doesn't linger forever.
-  setTimeout(() => { hint.style.opacity = '0'; }, 4000);
-  setTimeout(() => hint.remove(), 6000);
 
   const exitBtn = document.createElement('button');
   exitBtn.id = 'fireworks-exit-btn';
