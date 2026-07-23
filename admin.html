@@ -223,10 +223,10 @@
       <div class="import-bar">
         <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear or SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional - or fill in manually below)</span></div>
         <div class="import-row">
-          <input class="import-input" type="text" id="importUrl" placeholder="https://www.ssactivewear.com/p/... or https://www.sanmar.com/p/...">
+          <input class="import-input" type="text" id="importUrl" placeholder="S&S: paste product URL · SanMar: paste one color URL at a time (e.g. sanmar.com/p/K525_Black)">
           <button class="import-btn" id="importBtn" onclick="autoImport()">Import</button>
         </div>
-        <div class="import-status" id="importStatus">Paste a product URL from S&amp;S Activewear or SanMar — one URL imports ALL colors at once.</div>
+        <div class="import-status" id="importStatus">S&amp;S Activewear: paste product URL → imports all colors at once. &nbsp;|&nbsp; SanMar: paste one color URL per color (e.g. sanmar.com/p/K525_Black), repeat for each color.</div>
       </div>
       <div class="form-grid">
         <div class="form-group">
@@ -716,163 +716,128 @@ function setImportStatus(msg, type) {
 }
 
 // ── SANMAR FULL IMPORTER (single URL → all colors) ────────────────────
+// ── SANMAR IMPORTER (one color per URL) ──────────────────────────────
+// Paste sanmar.com/p/STYLE_COLOR, click Import → adds that one color.
+// Repeat for each color. Name/price/sizes fill on the first import.
 async function importFromSanmar() {
-  let url = document.getElementById('importUrl').value.trim();
+  const url = document.getElementById('importUrl').value.trim();
   if (!url || !url.includes('sanmar.com')) {
-    setImportStatus('Please paste a valid sanmar.com product URL.', 'error'); return;
+    setImportStatus('Please paste a sanmar.com product URL.', 'error'); return;
   }
   const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Importing...';
-  setImportStatus('Fetching SanMar product…', '');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  setImportStatus('Fetching color…', '');
 
   try {
-    function ensureHttps(u) {
-      if (!u) return '';
-      if (u.startsWith('//')) return 'https:' + u;
-      if (!u.startsWith('http')) return 'https://www.sanmar.com' + u;
-      return u;
-    }
-
-    async function proxyFetch(targetUrl) {
-      const proxies = [
-        'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl),
-      ];
-      for (const p of proxies) {
-        try {
-          const r = await fetch(p);
-          if (r.ok) { const t = await r.text(); if (t.length > 2000) return t; }
-        } catch {}
-      }
-      throw new Error('Could not reach SanMar through either proxy. Try again in a moment.');
-    }
-
-    function getOgImage(html) {
-      const m = html.match(/property="og:image"\s+content="([^"]+)"/) ||
-                html.match(/content="([^"]+)"\s+property="og:image"/);
-      if (!m) return '';
-      return ensureHttps(m[1].replace('www.sanmar.com:443//', 'cdnp.sanmar.com/'));
-    }
-
+    // Extract STYLE_COLOR from URL e.g. "K525_Black"
     const pathMatch = url.match(/\/p\/([^/?#]+)/);
-    if (!pathMatch) throw new Error('Could not find /p/STYLE_COLOR in URL.');
+    if (!pathMatch) throw new Error('URL must contain /p/STYLE_COLOR — e.g. sanmar.com/p/K525_Black');
     const productPath = pathMatch[1];
 
-    setImportStatus('Fetching product page…', '');
-    const text = await proxyFetch('https://www.sanmar.com/p/' + productPath);
-
-    // Name from og:title (cleaner than <title>)
-    let name = '';
-    const ogTitle = text.match(/property="og:title"\s+content="([^"]+)"/) ||
-                    text.match(/content="([^"]+)"\s+property="og:title"/);
-    if (ogTitle) name = ogTitle[1].replace(/\s*\|\s*.*/g, '').replace(/&amp;/g, '&').trim();
-    if (!name) {
-      const titleM = text.match(/<title>([^<]+)<\/title>/);
-      if (titleM) name = titleM[1].replace(/\s*\|\s*.*/g, '').trim();
-    }
-
-    // Price
-    const priceMatch = text.match(/\$([0-9]+\.[0-9]{2})\+/) ||
-                       text.match(/Starting at \$([0-9.]+)/);
-    const price = priceMatch ? priceMatch[1] : '';
-
-    // Sizes
-    const sizesMatch = text.match(/(?:Adult\s+)?Sizes:\s*([A-Z0-9]+)\s*[-\u2013]\s*([A-Z0-9]+)/i);
-    let sizes = '';
-    if (sizesMatch) {
-      const sizeOrder = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','2XL','XXL','3XL','4XL','5XL','6XL'];
-      const si = sizeOrder.indexOf(sizesMatch[1]);
-      const ei = sizeOrder.indexOf(sizesMatch[2]);
-      sizes = (si !== -1 && ei !== -1) ? sizeOrder.slice(si, ei+1).join(',') : sizesMatch[1]+','+sizesMatch[2];
-    }
-
-    // Gender / Type
-    let gender = 'Mens', type = '';
-    if (/women|ladies/i.test(name)) gender = 'Womens';
-    else if (/youth|kids/i.test(name)) gender = 'Kids';
-    if (/polo/i.test(name)) type = 'Polo';
-    else if (/hoodie|sweatshirt|fleece/i.test(name)) type = 'Sweatshirt';
-    else if (/jacket/i.test(name)) type = 'Jacket';
-    else if (/vest/i.test(name)) type = 'Vest';
-    else if (/cap|hat|beanie/i.test(name)) type = 'Hat';
-    else if (/bag|pack/i.test(name)) type = 'Bag';
-    else if (/shirt|tee/i.test(name)) type = 'Shirt';
-
-    // Colors — split on the color link testid marker
-    const colorData = [];
-    const seen = new Set();
-    const chunks = text.split('pdp-color-link-option');
-    for (let ci = 1; ci < chunks.length; ci++) {
-      const block = chunks[ci].substring(0, chunks[ci].indexOf('<\/a>') + 5 || 600);
-      const prev  = chunks[ci - 1];
-      const fullTag = prev.substring(prev.lastIndexOf('<a ')) + block;
-      const hrefM = fullTag.match(/href="\/p\/([^"]+)"/);
-      if (!hrefM || !hrefM[1].includes('_')) continue;
-      const colorPath = hrefM[1];
-      if (seen.has(colorPath)) continue;
-      seen.add(colorPath);
-      const nameM = block.match(/<p[^>]*class="m-0"[^>]*>([^<]+)<\/p>/);
-      if (!nameM) continue;
-      colorData.push({ name: nameM[1].trim(), colorPath });
-    }
-
-    if (!colorData.length) throw new Error(
-      'Could not find color list. Make sure you pasted a SanMar product page URL (sanmar.com/p/STYLE_COLOR).'
-    );
-
-    setImportStatus(`Found ${colorData.length} colors \u2014 fetching images\u2026`, '');
-
-    // Per-color images via og:image (always server-rendered, reliable)
-    const pastedOgImage = getOgImage(text);
-
-    async function fetchOgImage(colorPath) {
-      if (colorPath === productPath && pastedOgImage) return pastedOgImage;
+    // The og:image and og:title tags are always server-rendered — no JS needed.
+    // We fetch via two proxy fallbacks.
+    const proxies = [
+      'https://corsproxy.io/?' + encodeURIComponent('https://www.sanmar.com/p/' + productPath),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.sanmar.com/p/' + productPath),
+    ];
+    let html = '';
+    for (const p of proxies) {
       try {
-        const t = await proxyFetch('https://www.sanmar.com/p/' + colorPath);
-        return getOgImage(t);
-      } catch { return ''; }
+        const r = await fetch(p);
+        if (r.ok) { const t = await r.text(); if (t.length > 2000) { html = t; break; } }
+      } catch {}
+    }
+    if (!html) throw new Error('Could not fetch the page. Check your internet and try again.');
+
+    // og:image → the main product photo for this color, always in the page source
+    const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) ||
+                     html.match(/content="([^"]+)"\s+property="og:image"/);
+    let imgUrl = imgMatch ? imgMatch[1] : '';
+    // Fix sanmar.com:443// prefix that sometimes appears
+    imgUrl = imgUrl.replace(/https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
+    if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+
+    // Color name from the URL path — e.g. "K525_DeepBlack" → "Deep Black"
+    const colorSlug = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : productPath;
+    // Insert spaces before capital letters: "DeepBlack" → "Deep Black"
+    const colorName = colorSlug.replace(/([a-z])([A-Z])/g, '$1 $2')
+                                .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                                .trim();
+
+    // Check for duplicate color
+    if (allColorData.some(c => c.colorPath === productPath)) {
+      setImportStatus(`"${colorName}" is already in the list.`, 'error');
+      btn.disabled = false; btn.textContent = 'Import'; return;
     }
 
-    async function pLimit(tasks, limit) {
-      const results = new Array(tasks.length);
-      let idx = 0;
-      async function worker() { while (idx < tasks.length) { const i = idx++; results[i] = await tasks[i](); } }
-      await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
-      return results;
-    }
-
-    const images = await pLimit(colorData.map(c => () => fetchOgImage(c.colorPath)), 4);
-
-    allColorData = colorData.map((c, i) => ({ name: c.name, imgUrl: images[i] || '', checked: true }));
+    // Add to color list
+    allColorData.push({ name: colorName, imgUrl, colorPath: productPath, checked: true });
     renderColorPicker();
     syncColorFields();
 
-    if (name)   document.getElementById('fName').value   = name;
-    if (price)  document.getElementById('fCost').value   = price;
-    if (sizes)  document.getElementById('fSizes').value  = sizes;
-    if (gender) document.getElementById('fGender').value = gender;
-    if (type)   document.getElementById('fType').value   = type;
-    const firstImg = allColorData[0]?.imgUrl || '';
-    if (firstImg) { document.getElementById('fPhotoDisplay').value = firstImg; updatePhotoPreview(); }
+    // On the very first color, also fill in name / price / sizes / gender / type
+    if (allColorData.length === 1) {
+      // Product name from og:title
+      const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/) ||
+                         html.match(/content="([^"]+)"\s+property="og:title"/) ||
+                         html.match(/<title>([^<]+)<\/title>/);
+      if (titleMatch) {
+        const n = titleMatch[1].replace(/\s*\|\s*.*/g, '').replace(/&amp;/g, '&').trim();
+        if (n && !document.getElementById('fName').value) document.getElementById('fName').value = n;
+      }
+      // Price
+      const priceMatch = html.match(/\$([0-9]+\.[0-9]{2})\+/) ||
+                         html.match(/Starting at \$([0-9.]+)/);
+      if (priceMatch && !document.getElementById('fCost').value)
+        document.getElementById('fCost').value = priceMatch[1];
+      // Sizes
+      const sizesMatch = html.match(/(?:Adult\s+)?Sizes:\s*([A-Z0-9]+)\s*[-\u2013]\s*([A-Z0-9]+)/i);
+      if (sizesMatch && !document.getElementById('fSizes').value) {
+        const order = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','2XL','XXL','3XL','4XL','5XL','6XL'];
+        const si = order.indexOf(sizesMatch[1]), ei = order.indexOf(sizesMatch[2]);
+        document.getElementById('fSizes').value =
+          (si !== -1 && ei !== -1) ? order.slice(si, ei+1).join(',') : sizesMatch[1]+','+sizesMatch[2];
+      }
+      // Gender / Type from name
+      const nm = document.getElementById('fName').value;
+      if (!document.getElementById('fGender').value) {
+        document.getElementById('fGender').value =
+          /women|ladies/i.test(nm) ? 'Womens' : /youth|kids/i.test(nm) ? 'Kids' : 'Mens';
+      }
+      if (!document.getElementById('fType').value) {
+        document.getElementById('fType').value =
+          /polo/i.test(nm) ? 'Polo' :
+          /hoodie|sweatshirt|fleece/i.test(nm) ? 'Sweatshirt' :
+          /jacket/i.test(nm) ? 'Jacket' :
+          /vest/i.test(nm) ? 'Vest' :
+          /cap|hat|beanie/i.test(nm) ? 'Hat' :
+          /bag|pack/i.test(nm) ? 'Bag' :
+          /shirt|tee/i.test(nm) ? 'Shirt' : '';
+      }
+      // Set main photo to first color's image
+      if (imgUrl) { document.getElementById('fPhotoDisplay').value = imgUrl; updatePhotoPreview(); }
+    }
 
+    // Clear URL field and refocus for next color
+    document.getElementById('importUrl').value = '';
+    document.getElementById('importUrl').focus();
+
+    const count = allColorData.length;
     setImportStatus(
-      `\u2713 Imported ${allColorData.length} color${allColorData.length !== 1 ? 's' : ''}! ` +
-      `Uncheck any you don't want, fill in Logo/Placement and save.`,
+      `✓ Added "${colorName}" (${count} color${count !== 1 ? 's' : ''} so far) — paste the next color URL, or save when done.`,
       'success'
     );
 
   } catch(e) {
     setImportStatus('Error: ' + e.message, 'error');
-    console.error('[SanMar import]', e);
   }
   btn.disabled = false; btn.textContent = 'Import';
 }
 
-
 function setSanmarStatus(msg, type) { setImportStatus(msg, type); }
 
 function clearSanmarColors() {
-  setImportStatus('Paste a product URL from S&S Activewear or SanMar — one URL imports ALL colors at once.', '');
+  setImportStatus('SanMar: paste one color URL at a time (e.g. sanmar.com/p/K525_Black) and click Import for each color.', '');
 }
 
 // ── LOAD ITEMS ────────────────────────────────────────────────────────
