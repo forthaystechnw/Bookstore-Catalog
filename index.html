@@ -132,15 +132,15 @@
   .section-label { font-size: 12px; font-weight: 600; color: #1a1a1a; }
 
   /* Color swatches */
-  .color-preview-img { width: 100%; height: 180px; object-fit: contain; background: var(--light); border-radius: 8px; padding: 8px; display: block; margin-bottom: 10px; }
-  .color-preview-placeholder { width: 100%; height: 180px; background: var(--light); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; opacity: 0.4; }
-  .color-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-  .color-swatch-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; background: none; border: none; font-family: var(--font-body); }
-  .color-swatch-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); background: var(--light); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--muted); transition: border-color 0.15s, transform 0.15s; }
-  .color-swatch-btn.selected .color-swatch-circle { border-color: #1a1a1a; border-width: 3px; transform: scale(1.1); }
-  .color-swatch-btn .color-swatch-label { font-size: 10px; color: var(--muted); max-width: 48px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .color-preview-img { width: 100%; height: 340px; object-fit: contain; background: var(--light); border-radius: 8px; padding: 8px; display: block; margin-bottom: 10px; }
+  .color-preview-placeholder { width: 100%; height: 340px; background: var(--light); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; opacity: 0.4; }
+  .color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .color-swatch-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; background: none; border: none; font-family: var(--font-body); }
+  .color-swatch-circle { width: 56px; height: 56px; border-radius: 8px; border: 2px solid var(--border); background: var(--light); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--muted); transition: border-color 0.15s, transform 0.15s; overflow: hidden; }
+  .color-swatch-btn.selected .color-swatch-circle { border-color: #1a1a1a; border-width: 3px; transform: scale(1.05); box-shadow: 0 0 0 2px #1a1a1a22; }
+  .color-swatch-btn .color-swatch-label { font-size: 10px; color: var(--muted); max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .color-swatch-btn.selected .color-swatch-label { color: var(--text); font-weight: 600; }
-  .color-thumb { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+  .color-thumb { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; display: block; }
 
   /* Logo options */
   .logo-preview-img { width: 100%; height: 130px; object-fit: contain; background: var(--light); border-radius: 8px; padding: 8px; display: block; margin-bottom: 8px; }
@@ -248,7 +248,13 @@
           <div class="modal-title" id="modalTitle"></div>
           <div class="modal-subtitle" id="modalSub"></div>
         </div>
-        <button class="close-btn" onclick="closeModal()" aria-label="Close">✕</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <a id="sizeChartBtn" href="#" target="_blank" rel="noopener"
+             style="display:none;font-size:12px;font-weight:600;color:var(--text);background:var(--light);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;white-space:nowrap;">
+            📏 Size Chart
+          </a>
+          <button class="close-btn" onclick="closeModal()" aria-label="Close">✕</button>
+        </div>
       </div>
       <div class="modal-body">
         <div class="section-label">Item options</div>
@@ -422,6 +428,7 @@ async function loadProducts() {
         logoOptions:      getVal(row, 'logo options').split(',').map(l=>l.trim()).filter(Boolean),
         logoImages:       getVal(row, 'logo images').split(',').map(u=>u.trim()).filter(Boolean),
         placementOptions: getVal(row, 'placement options').split(',').map(p=>p.trim()).filter(Boolean),
+        sizeChart:        getVal(row, 'size chart'),
       }));
 
     if (!products.length) { showState('No items found. Fill in the Item column in your Sheet.'); return; }
@@ -626,7 +633,16 @@ function openModal(id) {
     '<option value="">-- Select placement --</option>' +
     currentProduct.placementOptions.map(p=>`<option>${p}</option>`).join('');
 
-  // Reset
+  // Size chart button
+  const scBtn = document.getElementById('sizeChartBtn');
+  if (currentProduct.sizeChart) {
+    scBtn.href = currentProduct.sizeChart;
+    scBtn.style.display = '';
+  } else {
+    scBtn.style.display = 'none';
+  }
+
+  // Reset fields
   ['fcustomtext','fnotes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fqty').value=1;
   updatePrice();

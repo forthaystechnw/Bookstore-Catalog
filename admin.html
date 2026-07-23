@@ -285,6 +285,11 @@
           <input class="form-input" type="text" id="fPlacements" placeholder="Left Chest,Right Chest,Back Yoke,Left Sleeve">
           <div class="form-hint">Comma-separated placement locations.</div>
         </div>
+        <div class="form-group full">
+          <div class="form-label">Size Chart URL <span style="font-weight:400;color:#888;">(optional)</span></div>
+          <input class="form-input" type="url" id="fSizeChart" placeholder="https://… link to PDF or size guide page">
+          <div class="form-hint">Paste a link to the size chart PDF or page. A "📏 Size Chart" button will appear in the order popup.</div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -411,6 +416,7 @@ async function loadItems() {
         logoOpts:   getVal(row, 'logo options'),
         logoImgs:   getVal(row, 'logo images'),
         placements: getVal(row, 'placement options'),
+        sizeChart:  getVal(row, 'size chart'),
       }));
     renderTable();
   } catch(e) {
@@ -514,6 +520,7 @@ function openEditor(idx) {
   document.getElementById('fLogoOptions').value = p.logoOpts   || '';
   document.getElementById('fLogoImages').value  = p.logoImgs   || '';
   document.getElementById('fPlacements').value  = p.placements || '';
+  document.getElementById('fSizeChart').value   = p.sizeChart  || '';
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   // Reset color picker for new item
@@ -1071,6 +1078,7 @@ function openEditor(idx) {
   document.getElementById('fLogoImages').value  = p.logoImgs   || '';
   document.getElementById('fPlacements').value  = p.placements || '';
   document.getElementById('overlay').classList.add('open');
+  document.getElementById('fSizeChart').value   = p.sizeChart  || '';
   document.body.style.overflow = 'hidden';
   // Reset color picker for new item
   if (editingIdx === null) { allColorData = []; renderColorPicker(); document.getElementById('fPhotoDisplay').value = ''; document.getElementById('fPhoto').value = ''; }
@@ -1111,6 +1119,7 @@ async function saveItem() {
     logoOpts:   document.getElementById('fLogoOptions').value.trim(),
     logoImgs:   cleanDriveUrls(document.getElementById('fLogoImages').value.trim()),
     placements: document.getElementById('fPlacements').value.trim(),
+    sizeChart:  document.getElementById('fSizeChart').value.trim(),
     rowIdx:     editingIdx !== null ? products[editingIdx].rowIdx : null,
     action:     editingIdx !== null ? 'update' : 'append',
   };
