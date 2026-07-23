@@ -459,10 +459,10 @@ function buildFilters() {
   function makeSection(label, id, chips) {
     return `
       <div class="filter-section">
-        <button class="filter-toggle open" onclick="toggleFilter(this)" aria-expanded="true">
+        <button class="filter-toggle" onclick="toggleFilter(this)" aria-expanded="false">
           ${label} <span class="filter-toggle-arrow">▼</span>
         </button>
-        <div class="filter-body open">
+        <div class="filter-body">
           <div class="filter-chips" id="chips-${id}">${chips}</div>
         </div>
       </div>`;
@@ -478,11 +478,6 @@ function buildFilters() {
     const chips = `<button class="filter-chip active" onclick="setType('',this)">All</button>`
       + types.map(t=>`<button class="filter-chip" onclick="setType('${t}',this)">${t}</button>`).join('');
     html += makeSection('Type', 'type', chips);
-  }
-  if (allColors.length) {
-    const chips = `<button class="filter-chip active" onclick="setColor('',this)">All</button>`
-      + allColors.map(c=>`<button class="filter-chip" onclick="setColor('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
-    html += makeSection('Color', 'color', chips);
   }
   if (allSizes.length) {
     const chips = `<button class="filter-chip active" onclick="setSize('',this)">All</button>`
