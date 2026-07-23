@@ -564,16 +564,7 @@ function driveUrl(url) {
     const m = url.match(/[-\w]{25,}/);
     return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w400` : url;
   }
-  // SanMar CDN — proxy through wsrv.nl which handles hotlink protection cleanly
-  if (url.includes('cdnp.sanmar.com') || url.includes('cdnm.sanmar.com') || url.includes('sanmar.com')) {
-    return 'https://wsrv.nl/?url=' + encodeURIComponent(url);
-  }
-  // wsrv.nl already-proxied URLs — pass through as-is
-  if (url.includes('wsrv.nl')) return url;
-  // S&S CDN
-  if (url.includes('cdn.ssactivewear.com')) {
-    return 'https://wsrv.nl/?url=' + encodeURIComponent(url);
-  }
+  // Everything else (SanMar CDN, S&S CDN, wsrv.nl, direct URLs) — pass through as-is
   return url;
 }
 

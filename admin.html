@@ -432,10 +432,7 @@ function driveUrl(url) {
     const m = url.match(/[-\w]{25,}/);
     return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w400` : url;
   }
-  // S&S and SanMar CDN - proxy through corsproxy to avoid CORS blocks
-  if (url.includes('cdn.ssactivewear.com') || url.includes('cdnp.sanmar.com') || url.includes('cdnm.sanmar.com')) {
-    return 'https://corsproxy.io/?' + encodeURIComponent(url);
-  }
+  // All other URLs (SanMar CDN, S&S CDN, etc.) — browsers load these fine directly
   return url;
 }
 
@@ -767,11 +764,11 @@ async function importFromSanmar() {
     rawImg = rawImg.replace(/^\/\//, 'https://');
     rawImg = rawImg.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
 
-    // Route the image through a CORS-friendly image proxy so it loads cross-origin
-    let imgUrl = rawImg ? 'https://wsrv.nl/?url=' + encodeURIComponent(rawImg) : '';
+    // Store the raw cdnp.sanmar.com URL — browsers can load these directly fine
+    let imgUrl = rawImg;
 
     console.log('[SanMar] raw og:image:', rawImg);
-    console.log('[SanMar] proxied imgUrl:', imgUrl);
+    console.log('[SanMar] imgUrl:', imgUrl);
 
     // Color name from the URL path — e.g. "K525_DeepBlack" → "Deep Black"
     const colorSlug = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : productPath;
