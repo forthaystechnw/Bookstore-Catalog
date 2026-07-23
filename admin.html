@@ -753,9 +753,15 @@ async function importFromSanmar() {
     const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) ||
                      html.match(/content="([^"]+)"\s+property="og:image"/);
     let imgUrl = imgMatch ? imgMatch[1] : '';
-    // Fix sanmar.com:443// prefix that sometimes appears
-    imgUrl = imgUrl.replace(/https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
+    // SanMar og:image often looks like:
+    //   https://www.sanmar.com:443//cdnp.sanmar.com/medias/...
+    // Fix: strip the www.sanmar.com:443// prefix and use cdnp directly
+    imgUrl = imgUrl.replace(/^https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
     if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+    // If still pointing at www.sanmar.com instead of cdnp, redirect to cdnp
+    imgUrl = imgUrl.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
+    console.log('[SanMar] raw og:image:', imgMatch ? imgMatch[1] : 'NOT FOUND');
+    console.log('[SanMar] cleaned imgUrl:', imgUrl);
 
     // Color name from the URL path — e.g. "K525_DeepBlack" → "Deep Black"
     const colorSlug = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : productPath;
