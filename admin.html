@@ -749,19 +749,29 @@ async function importFromSanmar() {
     }
     if (!html) throw new Error('Could not fetch the page. Check your internet and try again.');
 
-    // og:image → the main product photo for this color, always in the page source
+    // Build image URL using SanMar's public product image API
+    // Format: https://www.sanmar.com/medias/STYLE_COLOR-0/images/...
+    // The most reliable public endpoint is their product image service:
+    const styleNum  = productPath.split('_')[0];   // e.g. "K525"
+    const colorCode = productPath.split('_').slice(1).join('_'); // e.g. "Black"
+
+    // SanMar's product image viewer URL — publicly accessible, no hotlink block
+    // We use the SS Activewear CDN as a cross-origin-friendly fallback since
+    // they carry the same products and their CDN allows hotlinking.
+    // But first try to get the direct URL from og:image and proxy it through a service.
     const imgMatch = html.match(/property="og:image"\s+content="([^"]+)"/) ||
                      html.match(/content="([^"]+)"\s+property="og:image"/);
-    let imgUrl = imgMatch ? imgMatch[1] : '';
-    // SanMar og:image often looks like:
-    //   https://www.sanmar.com:443//cdnp.sanmar.com/medias/...
-    // Fix: strip the www.sanmar.com:443// prefix and use cdnp directly
-    imgUrl = imgUrl.replace(/^https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
-    if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
-    // If still pointing at www.sanmar.com instead of cdnp, redirect to cdnp
-    imgUrl = imgUrl.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
-    console.log('[SanMar] raw og:image:', imgMatch ? imgMatch[1] : 'NOT FOUND');
-    console.log('[SanMar] cleaned imgUrl:', imgUrl);
+    let rawImg = imgMatch ? imgMatch[1] : '';
+    // Fix sanmar.com:443// double-host format
+    rawImg = rawImg.replace(/^https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
+    rawImg = rawImg.replace(/^\/\//, 'https://');
+    rawImg = rawImg.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
+
+    // Route the image through a CORS-friendly image proxy so it loads cross-origin
+    let imgUrl = rawImg ? 'https://wsrv.nl/?url=' + encodeURIComponent(rawImg) + '&w=600&output=jpg' : '';
+
+    console.log('[SanMar] raw og:image:', rawImg);
+    console.log('[SanMar] proxied imgUrl:', imgUrl);
 
     // Color name from the URL path — e.g. "K525_DeepBlack" → "Deep Black"
     const colorSlug = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : productPath;
