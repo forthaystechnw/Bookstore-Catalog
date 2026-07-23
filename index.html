@@ -248,13 +248,7 @@
           <div class="modal-title" id="modalTitle"></div>
           <div class="modal-subtitle" id="modalSub"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <a id="sizeChartBtn" href="#" target="_blank" rel="noopener"
-             style="display:none;font-size:12px;font-weight:600;color:var(--text);background:var(--light);border:1px solid var(--border);border-radius:6px;padding:5px 10px;text-decoration:none;white-space:nowrap;">
-            📏 Size Chart
-          </a>
-          <button class="close-btn" onclick="closeModal()" aria-label="Close">✕</button>
-        </div>
+        <button class="close-btn" onclick="closeModal()" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
         <div class="section-label">Item options</div>
@@ -267,6 +261,14 @@
           <img id="colorPreviewImg" class="color-preview-img" src="" alt="Color preview" style="display:none" onerror="this.style.display='none';document.getElementById('colorPreviewPlaceholder').style.display='flex'">
           <div class="color-swatches" id="colorSwatches"></div>
           <input type="hidden" id="fcolor">
+        </div>
+
+        <!-- Size chart link — shown only when URL is set for this item -->
+        <div id="sizeChartRow" style="display:none;margin-bottom:12px;">
+          <a id="sizeChartBtn" href="#" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#1a1a1a;background:var(--light);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;text-decoration:none;transition:background 0.15s;">
+            📏 View Size Chart
+          </a>
         </div>
 
         <div class="form-row">
@@ -635,11 +637,12 @@ function openModal(id) {
 
   // Size chart button
   const scBtn = document.getElementById('sizeChartBtn');
+  const scRow = document.getElementById('sizeChartRow');
   if (currentProduct.sizeChart) {
     scBtn.href = currentProduct.sizeChart;
-    scBtn.style.display = '';
+    scRow.style.display = '';
   } else {
-    scBtn.style.display = 'none';
+    scRow.style.display = 'none';
   }
 
   // Reset fields
