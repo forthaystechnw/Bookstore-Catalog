@@ -768,7 +768,7 @@ async function importFromSanmar() {
     rawImg = rawImg.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
 
     // Route the image through a CORS-friendly image proxy so it loads cross-origin
-    let imgUrl = rawImg ? 'https://wsrv.nl/?url=' + encodeURIComponent(rawImg) + '&w=600&output=jpg' : '';
+    let imgUrl = rawImg ? 'https://wsrv.nl/?url=' + encodeURIComponent(rawImg) : '';
 
     console.log('[SanMar] raw og:image:', rawImg);
     console.log('[SanMar] proxied imgUrl:', imgUrl);
