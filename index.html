@@ -581,10 +581,19 @@ function renderGrid() {
   if (sortMode==='low') list.sort((a,b)=>a.cost-b.cost);
   if (sortMode==='high') list.sort((a,b)=>b.cost-a.cost);
   if (!list.length) { showState('No items match your search.'); return; }
-  document.getElementById('productGrid').innerHTML = list.map(p => `
+  document.getElementById('productGrid').innerHTML = list.map(p => {
+    // If search matches a color, show that color's image on the card
+    let cardPhoto = p.photo;
+    if (search) {
+      const matchedColorIdx = p.colors.findIndex(c => c.toLowerCase().includes(search));
+      if (matchedColorIdx !== -1 && p.colorImages[matchedColorIdx]) {
+        cardPhoto = p.colorImages[matchedColorIdx];
+      }
+    }
+    return `
     <div class="card" onclick="openModal(${p.id})">
       <div class="card-img">
-        ${p.photo ? `<img src="${driveUrl(p.photo)}" alt="${p.name}" onerror="this.parentNode.innerHTML='${PLACEHOLDER_SVG.replace(/"/g,"'")}'" >` : PLACEHOLDER_SVG}
+        ${cardPhoto ? `<img src="${driveUrl(cardPhoto)}" alt="${p.name}" onerror="this.parentNode.innerHTML='${PLACEHOLDER_SVG.replace(/"/g,"'")}'" >` : PLACEHOLDER_SVG}
       </div>
       <div class="card-body">
         ${(p.gender||p.type) ? `<div class="card-tag">${[p.gender,p.type].filter(Boolean).join(' · ')}</div>` : ''}
@@ -595,7 +604,8 @@ function renderGrid() {
           <button class="card-btn">Select →</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function setSort(mode, btn) {
