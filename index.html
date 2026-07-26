@@ -567,11 +567,15 @@ function driveUrl(url) {
 function renderGrid() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   let list = products.filter(p => {
-    if (!p.name.toLowerCase().includes(search)) return false;
+    if (search) {
+      const nameMatch  = p.name.toLowerCase().includes(search);
+      const colorMatch = p.colors.some(c => c.toLowerCase().includes(search));
+      if (!nameMatch && !colorMatch) return false;
+    }
     if (activeGender && p.gender !== activeGender) return false;
     if (activeType   && p.type   !== activeType)   return false;
-    if (activeColor  && !p.colors.includes(activeColor)) return false;
-    if (activeSize   && !p.sizes.includes(activeSize))   return false;
+    if (activeColor  && !p.colors.some(c => c.toLowerCase().includes(activeColor.toLowerCase()))) return false;
+    if (activeSize   && !p.sizes.includes(activeSize)) return false;
     return true;
   });
   if (sortMode==='low') list.sort((a,b)=>a.cost-b.cost);
