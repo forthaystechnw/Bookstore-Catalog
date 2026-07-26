@@ -47,17 +47,15 @@
   .fw-toggle input:disabled + .fw-toggle-slider { opacity: 0.5; cursor: wait; }
 
   /* LAYOUT */
-  .admin-layout { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; flex: 1; overflow: hidden; }
-
+  .admin-layout { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; flex: 1; }
   /* SECTION */
   .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; flex: 1; overflow: hidden; }
   .section-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--light); border-radius: var(--radius) var(--radius) 0 0; flex-shrink: 0; }
   .section-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; }
   .section-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; }
-
   /* TABLE */
-  .items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .items-table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 13px; }
   .items-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--surface); z-index: 2; }
   .items-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .items-table tr:last-child td { border-bottom: none; }
@@ -116,7 +114,7 @@
   /* NOTICE */
   .notice { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
 
-  @media (max-width: 700px) {
+  @media (max-width: 900px) {
     header { padding: 0 1rem; height: 60px; }
     .header-logo img { height: 40px !important; }
     .header-tag { display: none; }
