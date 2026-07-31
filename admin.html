@@ -274,14 +274,25 @@
           <div class="form-hint">Shown on the catalog card. If left blank, first color image is used.</div>
         </div>
         <div class="form-group full">
-          <div class="form-label">Logo options</div>
-          <input class="form-input" type="text" id="fLogoOptions" placeholder="University Seal,Athletic Logo,Custom Text">
-          <div class="form-hint">Comma-separated logo/design names.</div>
-        </div>
-        <div class="form-group full">
-          <div class="form-label">Logo images</div>
-          <input class="form-input" type="text" id="fLogoImages" placeholder="url_seal,url_athletic,">
-          <div class="form-hint">Comma-separated URLs matching each logo above.</div>
+          <div class="form-label">Logo options
+            <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0"> — check logos to offer on this item</span>
+          </div>
+
+          <!-- Logo picker grid -->
+          <div id="logoPickerGrid" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px"></div>
+
+          <!-- Add to logo library -->
+          <details style="margin-top:4px">
+            <summary style="font-size:12px;color:var(--muted);cursor:pointer;user-select:none;margin-bottom:8px">+ Add / manage logos in library</summary>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:flex-start">
+              <input class="form-input" type="text" id="newLogoName" placeholder="Logo name (e.g. University Seal)" style="flex:1;min-width:140px">
+              <input class="form-input" type="text" id="newLogoUrl" placeholder="Image URL" style="flex:2;min-width:180px">
+              <button type="button" onclick="addLogoToLibrary()" style="background:var(--primary);border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font-body)">+ Add</button>
+            </div>
+          </details>
+
+          <input type="hidden" id="fLogoOptions">
+          <input type="hidden" id="fLogoImages">
         </div>
         <div class="form-group full">
           <div class="form-label">Placement options</div>
@@ -532,6 +543,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const urlEl  = document.getElementById('newColorUrl');
   if (nameEl) nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); urlEl.focus(); } });
   if (urlEl)  urlEl.addEventListener('keydown',  e => { if (e.key === 'Enter') { e.preventDefault(); addColor(); } });
+  const logoNameEl = document.getElementById('newLogoName');
+  const logoUrlEl  = document.getElementById('newLogoUrl');
+  if (logoNameEl) logoNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); logoUrlEl.focus(); } });
+  if (logoUrlEl)  logoUrlEl.addEventListener('keydown',  e => { if (e.key === 'Enter') { e.preventDefault(); addLogoToLibrary(); } });
 });
 
 // ── LOAD ITEMS ────────────────────────────────────────────────────────
@@ -627,7 +642,103 @@ function renderTable() {
   }).join('');
 }
 
-// ── EDITOR ────────────────────────────────────────────────────────────
+// ── LOGO PICKER ──────────────────────────────────────────────────────
+// ── LOGO PICKER ──────────────────────────────────────────────────────
+// Logo library is derived from the spreadsheet — built from all unique
+// logo names + images already saved across all products.
+// Any new logo added here gets saved to the item and appears next time.
+
+let checkedLogoNames = new Set();
+
+function getLogoLibrary() {
+  // Build deduplicated logo list from all products in the sheet
+  const map = new Map(); // name → imgUrl
+  products.forEach(p => {
+    const names  = (p.logoOpts || '').split(',').map(s => s.trim()).filter(Boolean);
+    const images = (p.logoImgs || '').split(',').map(s => s.trim());
+    names.forEach((name, i) => {
+      if (!map.has(name)) map.set(name, images[i] || '');
+    });
+  });
+  return Array.from(map.entries()).map(([name, imgUrl]) => ({ name, imgUrl }));
+}
+
+function renderLogoPicker() {
+  const lib = getLogoLibrary();
+  const grid = document.getElementById('logoPickerGrid');
+  if (!lib.length) {
+    grid.innerHTML = '<div style="font-size:12px;color:var(--muted)">No logos found in spreadsheet yet. Add a logo name and image URL below to create the first one.</div>';
+    syncLogoFields();
+    return;
+  }
+  grid.innerHTML = lib.map((logo, i) => {
+    const checked = checkedLogoNames.has(logo.name);
+    return `
+    <div onclick="toggleLogo('${logo.name.replace(/'/g, "\\'")}')"
+         style="display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;width:80px">
+      <div style="width:72px;height:72px;border-radius:8px;border:2.5px solid ${checked ? '#1a1a1a' : 'var(--border)'};
+                  background:var(--light);overflow:hidden;display:flex;align-items:center;justify-content:center;
+                  transition:border-color 0.15s;position:relative">
+        ${logo.imgUrl
+          ? `<img src="${logo.imgUrl}" style="width:100%;height:100%;object-fit:contain;padding:4px" onerror="this.style.display='none'">`
+          : `<span style="font-size:10px;color:var(--muted);text-align:center;padding:4px">${logo.name}</span>`}
+        ${checked ? `<div style="position:absolute;top:3px;right:3px;background:#1a1a1a;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center">
+          <svg width="9" height="9" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </div>` : ''}
+      </div>
+      <div style="font-size:10px;text-align:center;line-height:1.2;color:${checked ? 'var(--text)' : 'var(--muted)'};font-weight:${checked ? '600' : '400'};word-break:break-word;max-width:72px">${logo.name}</div>
+    </div>`;
+  }).join('');
+  syncLogoFields();
+}
+
+function toggleLogo(name) {
+  if (checkedLogoNames.has(name)) checkedLogoNames.delete(name);
+  else checkedLogoNames.add(name);
+  renderLogoPicker();
+  saveDraft();
+}
+
+function syncLogoFields() {
+  const lib = getLogoLibrary();
+  const selected = lib.filter(l => checkedLogoNames.has(l.name));
+  document.getElementById('fLogoOptions').value = selected.map(l => l.name).join(',');
+  document.getElementById('fLogoImages').value  = selected.map(l => l.imgUrl).join(',');
+}
+
+function addLogoToLibrary() {
+  // Adding a new logo: save it directly into the current item's fields so it
+  // gets written to the spreadsheet on save — making it available for all future items.
+  const name = document.getElementById('newLogoName').value.trim();
+  if (!name) { document.getElementById('newLogoName').focus(); return; }
+  const imgUrl = document.getElementById('newLogoUrl').value.trim();
+  // Check it doesn't already exist
+  const lib = getLogoLibrary();
+  if (lib.some(l => l.name === name)) { alert(`"${name}" already exists.`); return; }
+  // Add a temporary entry to the current item so it shows and can be toggled
+  // It becomes permanent once the item is saved to the sheet
+  checkedLogoNames.add(name);
+  // Inject into fLogoOptions/Images directly so it survives before products reloads
+  const curOpts = document.getElementById('fLogoOptions').value;
+  const curImgs = document.getElementById('fLogoImages').value;
+  document.getElementById('fLogoOptions').value = [curOpts, name].filter(Boolean).join(',');
+  document.getElementById('fLogoImages').value  = [curImgs, imgUrl].filter(Boolean).join(',');
+  // Re-render using a temporary augmented list
+  const grid = document.getElementById('logoPickerGrid');
+  document.getElementById('newLogoName').value = '';
+  document.getElementById('newLogoUrl').value = '';
+  document.getElementById('newLogoName').focus();
+  // Temporarily push to products so getLogoLibrary picks it up
+  if (products.length) {
+    products[0]._tempLogoName = name;
+    products[0]._tempLogoImg  = imgUrl;
+    products[0].logoOpts = [products[0].logoOpts, name].filter(Boolean).join(',');
+    products[0].logoImgs = [products[0].logoImgs, imgUrl].filter(Boolean).join(',');
+  }
+  renderLogoPicker();
+  saveDraft();
+}
+
 // ── DRAFT SAVE ────────────────────────────────────────────────────────
 const DRAFT_KEY = 'adminItemDraft';
 
@@ -641,6 +752,7 @@ function saveDraft() {
     sizes:      document.getElementById('fSizes').value,
     logoOpts:   document.getElementById('fLogoOptions').value,
     logoImgs:   document.getElementById('fLogoImages').value,
+    checkedLogos: [...checkedLogoNames],
     placements: document.getElementById('fPlacements').value,
     sizeChart:  document.getElementById('fSizeChart').value,
     photo:      document.getElementById('fPhotoDisplay').value,
@@ -655,7 +767,7 @@ function saveDraft() {
 function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
 
 function hookDraftSaving() {
-  ['fName','fCost','fGender','fType','fSizes','fLogoOptions','fLogoImages','fPlacements','fSizeChart','fPhotoDisplay','newColorName','newColorUrl']
+  ['fName','fCost','fGender','fType','fSizes','fPlacements','fSizeChart','fPhotoDisplay','newColorName','newColorUrl']
     .forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', saveDraft); });
 }
 
@@ -685,12 +797,18 @@ function openEditor(idx) {
   document.getElementById('fLogoImages').value  = p.logoImgs   || '';
   document.getElementById('fPlacements').value  = p.placements || '';
   document.getElementById('fSizeChart').value   = p.sizeChart  || '';
+  // Load logo picker — check logos that this item already has
+  const savedLogoNames = (p.logoOpts || '').split(',').map(l => l.trim()).filter(Boolean);
+  checkedLogoNames = new Set(savedLogoNames.length ? savedLogoNames : getLogoLibrary().map(l => l.name));
+  renderLogoPicker();
 
   // For new items, check for a saved draft
   if (idx === null) {
     allColorData = [];
     document.getElementById('fPhotoDisplay').value = '';
     document.getElementById('fPhoto').value = '';
+    // Default: all logos from spreadsheet checked for new items
+    checkedLogoNames = new Set(getLogoLibrary().map(l => l.name));
     const draft = (() => { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch { return null; } })();
     if (draft && (draft.name || (draft.colors && draft.colors.length))) {
       const age = Math.round((Date.now() - draft.savedAt) / 60000);
@@ -708,6 +826,7 @@ function openEditor(idx) {
         document.getElementById('fPhotoDisplay').value= draft.photo      || '';
         document.getElementById('fPhoto').value       = draft.photo      || '';
         if (draft.colors && draft.colors.length) allColorData = draft.colors;
+        if (draft.checkedLogos) { checkedLogoNames = new Set(draft.checkedLogos); renderLogoPicker(); }
         updatePhotoPreview();
       } else {
         clearDraft();
