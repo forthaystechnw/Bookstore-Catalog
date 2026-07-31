@@ -12,6 +12,18 @@
     --radius: 10px; --font-display: "Barlow Condensed", sans-serif; --font-body: "Barlow", sans-serif;
     --danger: #b91c1c; --danger-bg: #fee2e2; --success: #2d6a4f; --success-bg: #d8f3dc;
   }
+  [data-theme="dark"] {
+    --bg: #111111; --surface: #1e1e1e; --border: #2e2e2e;
+    --text: #f0ede8; --muted: #8a8480; --light: #272727;
+    --danger-bg: #3b1a1a; --success-bg: #1a2e22;
+  }
+  .dark-toggle {
+    background: none; border: 1.5px solid var(--border); border-radius: 20px;
+    padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--text);
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    font-family: var(--font-body); transition: border-color 0.15s;
+  }
+  .dark-toggle:hover { border-color: var(--primary); }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-body); background: var(--bg); color: var(--text); }
 
@@ -164,7 +176,8 @@
           <span class="fw-toggle-slider"></span>
         </label>
       </div>
-      <a href="index.html" target="_blank" style="font-size:13px;font-weight:500;color:#1a1a1a;text-decoration:none">View catalog ↗</a>
+      <a href="index.html" target="_blank" style="font-size:13px;font-weight:500;color:var(--text);text-decoration:none">View catalog ↗</a>
+      <button class="dark-toggle" onclick="toggleDark()" id="darkToggle">🌙 Dark</button>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </header>
@@ -1016,6 +1029,21 @@ function parseCSV(text) {
   if (cur || row.length) { row.push(cur.trim()); if (row.some(c => c.length > 0)) rows.push(row); }
   return rows;
 }
+// ── DARK MODE ─────────────────────────────────────────────────────────
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('darkToggle');
+    if (btn) btn.textContent = '☀️ Light';
+  }
+})();
 
 </script>
 </body>

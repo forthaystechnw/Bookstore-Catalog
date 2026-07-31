@@ -35,6 +35,25 @@
     --muted: #6b6560;
     --light: #f0ece5;
     --radius: 10px;
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Barlow Condensed', sans-serif;
+  }
+  [data-theme="dark"] {
+    --bg: #111111;
+    --surface: #1e1e1e;
+    --border: #2e2e2e;
+    --text: #f0ede8;
+    --muted: #8a8480;
+    --light: #272727;
+  }
+  .dark-toggle {
+    background: none; border: 1.5px solid var(--border); border-radius: 20px;
+    padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--text);
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    font-family: var(--font-body); transition: border-color 0.15s;
+  }
+  .dark-toggle:hover { border-color: var(--primary); }
+    --radius: 10px;
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -59,8 +78,8 @@
     .layout { grid-template-columns: 1fr; }
     aside { border-right: none; border-bottom: 1px solid var(--border); padding: 1rem; }
     .filter-chips { flex-wrap: wrap; }
-    .grid { gap: 0.75rem; }
-    .card { flex: 0 0 calc(50% - 0.375rem); width: calc(50% - 0.375rem); }
+    .grid { gap: 0.75rem; justify-content: center; }
+    .card { flex: 1 1 calc(50% - 0.75rem); width: calc(50% - 0.75rem); max-width: 100%; min-width: 140px; }
     header { padding: 0 1rem; height: 70px; }
     header img { height: 50px !important; }
     main { padding: 1rem; }
@@ -203,6 +222,7 @@
   <div class="header-logo">
     <img src="https://raw.githubusercontent.com/jordanedwards27/Bookstore-Catalog/main/TIGER_HORIZONTAL_TM-01%20(1).png" alt="Logo" style="height:70px;width:auto;object-fit:contain;" onerror="this.style.display='none'">
   </div>
+  <button class="dark-toggle" onclick="toggleDark()" id="darkToggle" title="Toggle dark mode">🌙 Dark</button>
   <button class="cart-btn" onclick="openCart()">
     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
     Cart
@@ -568,9 +588,12 @@ function renderGrid() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   let list = products.filter(p => {
     if (search) {
-      const nameMatch  = p.name.toLowerCase().includes(search);
-      const colorMatch = p.colors.some(c => c.toLowerCase().includes(search));
-      if (!nameMatch && !colorMatch) return false;
+      const nameMatch   = p.name.toLowerCase().includes(search);
+      const colorMatch  = p.colors.some(c => c.toLowerCase().includes(search));
+      const genderMatch = p.gender.toLowerCase().includes(search);
+      const typeMatch   = p.type.toLowerCase().includes(search);
+      const sizeMatch   = p.sizes.some(s => s.toLowerCase().includes(search));
+      if (!nameMatch && !colorMatch && !genderMatch && !typeMatch && !sizeMatch) return false;
     }
     if (activeGender && p.gender !== activeGender) return false;
     if (activeType   && p.type   !== activeType)   return false;
@@ -934,6 +957,20 @@ loadProducts();
     }
   } catch (e) {
     console.warn('Could not check fireworks setting:', e);
+  }
+// ── DARK MODE ─────────────────────────────────────────────────────────
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('darkToggle');
+    if (btn) btn.textContent = '☀️ Light';
   }
 })();
 </script>
