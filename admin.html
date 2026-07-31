@@ -79,7 +79,10 @@
   .item-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: contain; background: var(--light); padding: 3px; }
   .item-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; background: var(--light); display: flex; align-items: center; justify-content: center; opacity: 0.4; }
   .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--light); color: var(--muted); text-transform: uppercase; }
-  .edit-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; }
+  .hide-btn { background: var(--light); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; margin-left: 4px; }
+  .hide-btn:hover { background: var(--border); }
+  .hide-btn.hidden-active { background: #fef3c7; color: #92400e; border-color: #fbbf24; }
+  .row-hidden td { opacity: 0.45; }
   .edit-btn:hover { background: var(--accent); }
   .delete-btn { background: var(--danger-bg); color: var(--danger); border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 600; font-family: var(--font-body); cursor: pointer; margin-left: 4px; }
   .delete-btn:hover { background: var(--danger); color: #fff; }
@@ -107,15 +110,7 @@
   .cancel-btn { background: var(--light); color: var(--text); border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-family: var(--font-body); cursor: pointer; }
 
   /* IMPORT */
-  .import-bar { background: #fffbf2; border: 1px solid #e8dfc8; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-  .import-bar-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-  .import-row { display: flex; gap: 8px; }
-  .import-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; font-size: 13px; font-family: var(--font-body); background: var(--bg); color: var(--text); outline: none; }
-  .import-btn { background: var(--primary); color: #1a1a1a; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; white-space: nowrap; }
   .import-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
-  .import-status { font-size: 12px; color: var(--muted); }
-  .import-status.success { color: var(--success); }
-  .import-status.error { color: var(--danger); }
 
   /* TOAST */
   .toast { position: fixed; bottom: 2rem; right: 2rem; background: #1a1a1a; color: #fff; border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 500; z-index: 500; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; }
@@ -232,14 +227,6 @@
       <button class="close-btn" onclick="closeEditor()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="import-bar">
-        <div class="import-bar-title">⚡ Auto-import from S&amp;S Activewear or SanMar <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b08d00">(optional - or fill in manually below)</span></div>
-        <div class="import-row">
-          <input class="import-input" type="text" id="importUrl" placeholder="Paste a URL from ssactivewear.com or sanmar.com/p/STYLE_COLOR">
-          <button class="import-btn" id="importBtn" onclick="autoImport()">Import</button>
-        </div>
-        <div class="import-status" id="importStatus">S&amp;S: paste any product URL → all colors imported at once. &nbsp;|&nbsp; SanMar: paste one color URL at a time (e.g. sanmar.com/p/K525_Black), repeat for each color.|&nbsp; SanMar: paste one color URL per color (e.g. sanmar.com/p/K525_Black), repeat for each color.</div>
-      </div>
       <div class="form-grid">
         <div class="form-group">
           <div class="form-label">Item name *</div>
@@ -263,13 +250,17 @@
           <div class="form-hint">Comma-separated. Leave blank for hats, bags, etc.</div>
         </div>
         <div class="form-group full">
-          <div class="form-label">Color options <span style="font-weight:400;text-transform:none;color:var(--muted)">- check colors to offer, uncheck to hide</span></div>
-          <div class="color-picker-actions">
-            <button type="button" class="color-action-btn" onclick="selectAllColors()">Select all</button>
-            <button type="button" class="color-action-btn" onclick="selectNoColors()">Deselect all</button>
+          <div class="form-label">Colors</div>
+
+          <!-- Add color row -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;flex-wrap:wrap">
+            <input class="form-input" type="text" id="newColorName" placeholder="Color name (e.g. Navy)" style="flex:1;min-width:120px">
+            <input class="form-input" type="text" id="newColorUrl" placeholder="Image URL (optional)" style="flex:2;min-width:180px">
+            <button type="button" onclick="addColor()" style="background:var(--primary);border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font-body)">+ Add Color</button>
           </div>
-          <div class="color-picker-grid" id="colorPickerGrid"></div>
-          <div class="form-hint" style="margin-top:6px">Colors are imported automatically. Use checkboxes to control which colors faculty can choose from.</div>
+
+          <!-- Color list -->
+          <div id="colorList" style="display:flex;flex-direction:column;gap:6px"></div>
           <input type="hidden" id="fColors">
           <input type="hidden" id="fColorImages">
           <input type="hidden" id="fPhoto">
@@ -305,6 +296,7 @@
       </div>
     </div>
     <div class="modal-footer">
+      <span id="draftIndicator" style="font-size:11px;color:var(--muted);margin-right:auto;align-self:center"></span>
       <button class="cancel-btn" onclick="closeEditor()">Cancel</button>
       <button class="save-btn" id="saveBtn" onclick="saveItem()">Save item</button>
     </div>
@@ -429,6 +421,7 @@ async function loadItems() {
         logoImgs:   getVal(row, 'logo images'),
         placements: getVal(row, 'placement options'),
         sizeChart:  getVal(row, 'size chart'),
+        hidden:     getVal(row, 'hidden').toLowerCase() === 'true',
       }));
     renderTable();
   } catch(e) {
@@ -464,82 +457,8 @@ function cleanDriveUrls(str) {
   return str.split(',').map(u => cleanDriveUrl(u.trim())).join(',');
 }
 
-function renderTable() {
-  if (!products.length) {
-    document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found. Click "Add item" to get started.</td></tr>';
-    return;
-  }
-  const search = (document.getElementById('adminSearch')?.value || '').toLowerCase();
-  const filtered = products.filter(p =>
-    (p.name   ||'').toLowerCase().includes(search) ||
-    (p.gender ||'').toLowerCase().includes(search) ||
-    (p.type   ||'').toLowerCase().includes(search) ||
-    (p.colors ||'').toLowerCase().includes(search)
-  );
-  if (!filtered.length) {
-    document.getElementById('itemsBody').innerHTML = `<tr class="loading-row"><td colspan="8">No items match "${search}"</td></tr>`;
-    return;
-  }
-  document.getElementById('itemsBody').innerHTML = filtered.map((p) => {
-    const i = products.indexOf(p);
-    const thumb = p.photo
-      ? `<img class="item-thumb" src="${driveUrl(p.photo)}" alt="${p.name}" onerror="this.style.display='none'">`
-      : `<div class="item-thumb-placeholder"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div>`;
-    return `<tr>
-      <td style="padding-left:1.5rem">${thumb}</td>
-      <td><strong>${p.name}</strong></td>
-      <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">-</span>'}</td>
-      <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">-</span>'}</td>
-      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '-'}</td>
-      <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.sizes  || 'One size'}</td>
-      <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '-'}</strong></td>
-      <td class="col-actions">
-        <button class="edit-btn" onclick="openEditor(${i})">Edit</button>
-        <button class="delete-btn" onclick="deleteItem(${i})">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
 
 // ── EDITOR ────────────────────────────────────────────────────────────
-function openEditor(idx) {
-  editingIdx = idx;
-  document.getElementById('modalTitle').textContent = idx === null ? 'Add item' : 'Edit item';
-  const p = idx !== null ? products[idx] : {};
-  document.getElementById('fName').value        = p.name       || '';
-  document.getElementById('fCost').value        = p.cost       || '';
-  document.getElementById('fGender').value      = p.gender     || '';
-  document.getElementById('fType').value        = p.type       || '';
-  document.getElementById('fSizes').value       = p.sizes      || '';
-  document.getElementById('fColors').value      = p.colors     || '';
-  document.getElementById('fPhoto').value       = p.photo      || '';
-  document.getElementById('fColorImages').value = p.colorImgs  || '';
-  // Load existing colors into picker
-  const existingColors = (p.colors || '').split(',').map(c=>c.trim()).filter(Boolean);
-  const existingImgs = (p.colorImgs || '').split(',').map(u=>u.trim());
-  if (existingColors.length) {
-    buildColorPicker(existingColors, existingImgs);
-    document.getElementById('fPhotoDisplay').value = p.photo || '';
-  } else {
-    allColorData = [];
-    renderColorPicker();
-    document.getElementById('fPhotoDisplay').value = p.photo || '';
-    document.getElementById('fPhoto').value = p.photo || '';
-  }
-  document.getElementById('fLogoOptions').value = p.logoOpts   || '';
-  document.getElementById('fLogoImages').value  = p.logoImgs   || '';
-  document.getElementById('fPlacements').value  = p.placements || '';
-  document.getElementById('fSizeChart').value   = p.sizeChart  || '';
-  document.getElementById('overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  // Reset color picker for new item
-  if (editingIdx === null) { allColorData = []; renderColorPicker(); document.getElementById('fPhotoDisplay').value = ''; document.getElementById('fPhoto').value = ''; }
-  // Reset import bar
-  document.getElementById('importUrl').value = '';
-  setImportStatus('Paste a product URL from S&S Activewear or SanMar — one URL imports ALL colors at once.', '');
-  const cntEl = document.getElementById('sanmarColorCount');
-  if (cntEl) cntEl.textContent = '';
-}
 
 function updatePhotoPreview() {
   const url = document.getElementById('fPhotoDisplay').value.trim();
@@ -549,239 +468,71 @@ function updatePhotoPreview() {
   else { thumb.style.display = 'none'; }
 }
 
-// ── COLOR PICKER ─────────────────────────────────────────────────────
-let allColorData = []; // [{name, imgUrl, checked}]
+// ── COLOR LIST ────────────────────────────────────────────────────────
+let allColorData = []; // [{name, imgUrl}]
 
-function buildColorPicker(colorNames, colorImages) {
-  allColorData = colorNames.map((name, i) => ({
-    name,
-    imgUrl: colorImages[i] || '',
-    checked: true
-  }));
-  renderColorPicker();
-  syncColorFields();
-}
-
-function renderColorPicker() {
-  const grid = document.getElementById('colorPickerGrid');
+function renderColorList() {
+  const list = document.getElementById('colorList');
   if (!allColorData.length) {
-    grid.innerHTML = '<div style="font-size:12px;color:var(--muted)">Import an item to see color options, or add them manually below.</div>';
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0">No colors added yet.</div>';
+    syncColorFields();
     return;
   }
-  grid.innerHTML = allColorData.map((c, i) => `
-    <div class="color-pick-item ${c.checked ? 'checked' : ''}" onclick="toggleColor(${i})">
+  list.innerHTML = allColorData.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--light);border-radius:8px;padding:8px 10px;border:1px solid var(--border)">
       ${c.imgUrl
-        ? `<img src="${c.imgUrl}" alt="${c.name}" onerror="this.style.display='none'">`
-        : `<div style="width:56px;height:56px;border-radius:8px;background:var(--light);border:2px solid ${c.checked ? '#1a1a1a' : 'transparent'}"></div>`}
-      <input class="color-pick-check" type="checkbox" ${c.checked ? 'checked' : ''} onclick="event.stopPropagation();toggleColor(${i})">
-      <div class="color-pick-label" title="${c.name}">${c.name}</div>
+        ? `<img src="${c.imgUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">`
+        : `<div style="width:44px;height:44px;border-radius:6px;background:var(--border);flex-shrink:0"></div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${c.name}</div>
+        ${c.imgUrl ? `<div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.imgUrl}</div>` : '<div style="font-size:11px;color:var(--muted)">No image</div>'}
+      </div>
+      <button type="button" onclick="removeColor(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px;flex-shrink:0" title="Remove">✕</button>
     </div>`).join('');
-}
-
-function toggleColor(i) {
-  allColorData[i].checked = !allColorData[i].checked;
-  renderColorPicker();
   syncColorFields();
 }
 
-function selectAllColors() { allColorData.forEach(c => c.checked = true); renderColorPicker(); syncColorFields(); }
-function selectNoColors()  { allColorData.forEach(c => c.checked = false); renderColorPicker(); syncColorFields(); }
+function addColor() {
+  const name = document.getElementById('newColorName').value.trim();
+  if (!name) { document.getElementById('newColorName').focus(); return; }
+  const imgUrl = document.getElementById('newColorUrl').value.trim();
+  allColorData.push({ name, imgUrl });
+  document.getElementById('newColorName').value = '';
+  document.getElementById('newColorUrl').value = '';
+  document.getElementById('newColorName').focus();
+  renderColorList();
+  saveDraft();
+  if (allColorData.length === 1 && imgUrl && !document.getElementById('fPhotoDisplay').value) {
+    document.getElementById('fPhotoDisplay').value = imgUrl;
+    document.getElementById('fPhoto').value = imgUrl;
+    updatePhotoPreview();
+  }
+}
+
+function removeColor(i) {
+  allColorData.splice(i, 1);
+  renderColorList();
+  saveDraft();
+}
 
 function syncColorFields() {
-  const checked = allColorData.filter(c => c.checked);
-  document.getElementById('fColors').value = checked.map(c => c.name).join(',');
-  document.getElementById('fColorImages').value = checked.map(c => c.imgUrl).join(',');
-  const firstImg = checked.length ? checked[0].imgUrl : '';
-  document.getElementById('fPhoto').value = document.getElementById('fPhotoDisplay').value || firstImg;
+  document.getElementById('fColors').value = allColorData.map(c => c.name).join(',');
+  document.getElementById('fColorImages').value = allColorData.map(c => c.imgUrl).join(',');
+  const firstImg = allColorData[0]?.imgUrl || '';
   if (!document.getElementById('fPhotoDisplay').value && firstImg) {
     document.getElementById('fPhotoDisplay').value = firstImg;
+    document.getElementById('fPhoto').value = firstImg;
+    updatePhotoPreview();
   }
 }
 
-function addManualColor() {
-  const name = prompt('Color name:');
-  if (!name) return;
-  const img = prompt('Image URL (optional):') || '';
-  allColorData.push({ name: name.trim(), imgUrl: img.trim(), checked: true });
-  renderColorPicker();
-  syncColorFields();
-}
-
-// ── AUTO-IMPORT ──────────────────────────────────────────────────────
-async function autoImport() {
-  const url = document.getElementById('importUrl').value.trim();
-  if (!url) { setImportStatus('Paste a product URL to import.', 'error'); return; }
-  if (url.includes('ssactivewear.com')) {
-    await importFromSS(url);
-  } else if (url.includes('sanmar.com')) {
-    await importFromSanmar(url);
-  } else {
-    setImportStatus('Please paste a URL from ssactivewear.com or sanmar.com.', 'error');
-  }
-}
-
-// ── S&S ACTIVEWEAR ────────────────────────────────────────────────────
-async function importFromSS(url) {
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Importing…';
-  setImportStatus('Fetching S&S product…', '');
-  try {
-    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-    if (!res.ok) throw new Error('Could not reach S&S. Try again.');
-    const html = await res.text();
-
-    // Name
-    const titleM = html.match(/<title>([^<]+)<\/title>/);
-    const name = titleM ? titleM[1].replace(/\s*-\s*S&S Activewear.*$/i,'').replace(/\s*\|\s*.*/,'').trim() : '';
-
-    // Price
-    const priceM = html.match(/\$([0-9]+\.[0-9]{2})/) || html.match(/"price"\s*:\s*"?([0-9.]+)"?/);
-    const price = priceM ? priceM[1] : '';
-
-    // Sizes
-    const sizesM = html.match(/"sizes?":\s*\[([^\]]+)\]/i);
-    let sizes = '';
-    if (sizesM) {
-      sizes = sizesM[1].replace(/["']/g,'').split(',').map(s=>s.trim()).filter(Boolean).join(',');
-    }
-
-    // Colors + images from JSON data embedded in page
-    const colorNames = [], colorImages = [];
-    const colorDataM = html.match(/"colors"\s*:\s*(\[[^\]]+\])/);
-    if (colorDataM) {
-      try {
-        JSON.parse(colorDataM[1]).forEach(c => {
-          if (c.name) colorNames.push(c.name);
-          if (c.colorImageUrl || c.imageUrl) colorImages.push(c.colorImageUrl || c.imageUrl);
-        });
-      } catch {}
-    }
-    // Fallback: scrape color swatches from HTML
-    if (!colorNames.length) {
-      const swatchRe = /data-color="([^"]+)"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/g;
-      let m;
-      while ((m = swatchRe.exec(html)) !== null) {
-        colorNames.push(m[1]);
-        colorImages.push(m[2].startsWith('http') ? m[2] : 'https:' + m[2]);
-      }
-    }
-
-    if (!colorNames.length) throw new Error('Could not find color data on this S&S page.');
-
-    // Build color picker
-    allColorData = colorNames.map((name, i) => ({
-      name, imgUrl: colorImages[i] || '', checked: true
-    }));
-    renderColorPicker();
-    syncColorFields();
-
-    if (name)  document.getElementById('fName').value  = name;
-    if (price) document.getElementById('fCost').value  = price;
-    if (sizes) document.getElementById('fSizes').value = sizes;
-    if (allColorData[0]?.imgUrl) {
-      document.getElementById('fPhotoDisplay').value = allColorData[0].imgUrl;
-      updatePhotoPreview();
-    }
-    document.getElementById('importUrl').value = '';
-    setImportStatus(`✓ Imported ${allColorData.length} colors from S&S! Fill in Logo/Placement and save.`, 'success');
-  } catch(e) {
-    setImportStatus('Error: ' + e.message, 'error');
-  }
-  btn.disabled = false; btn.textContent = 'Import';
-}
-
-// ── SANMAR ────────────────────────────────────────────────────────────
-// Paste any sanmar.com/p/STYLE_COLOR URL.
-// Gets the product name, price, sizes from that page.
-// Gets the image from the og:image tag (always server-rendered).
-// Color name comes from the URL itself (e.g. K525_DeepBlack → "Deep Black").
-// Repeat for each color — name/price/sizes only fill on the first paste.
-async function importFromSanmar(url) {
-  const btn = document.getElementById('importBtn');
-  btn.disabled = true; btn.textContent = 'Adding…';
-  setImportStatus('Fetching color…', '');
-  try {
-    const pathM = url.match(/\/p\/([^/?#]+)/);
-    if (!pathM) throw new Error('URL must contain /p/STYLE_COLOR — e.g. sanmar.com/p/K525_Black');
-    const productPath = pathM[1]; // e.g. "K525_DeepBlack"
-
-    // Fetch via two proxy fallbacks
-    let html = '';
-    for (const proxy of [
-      'https://corsproxy.io/?' + encodeURIComponent('https://www.sanmar.com/p/' + productPath),
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.sanmar.com/p/' + productPath),
-    ]) {
-      try {
-        const r = await fetch(proxy);
-        if (r.ok) { const t = await r.text(); if (t.length > 2000) { html = t; break; } }
-      } catch {}
-    }
-    if (!html) throw new Error('Could not fetch the page. Check your connection and try again.');
-
-    // og:image is always in the server-rendered HTML — reliable image source
-    const ogImgM = html.match(/property="og:image"\s+content="([^"]+)"/) ||
-                   html.match(/content="([^"]+)"\s+property="og:image"/);
-    let imgUrl = ogImgM ? ogImgM[1] : '';
-    // Clean up sanmar.com:443// double-host format
-    imgUrl = imgUrl.replace(/^https?:\/\/www\.sanmar\.com(?::\d+)?\/\//, 'https://');
-    imgUrl = imgUrl.replace(/^\/\//, 'https://');
-    imgUrl = imgUrl.replace('https://www.sanmar.com/cdnp.sanmar.com/', 'https://cdnp.sanmar.com/');
-
-    // Color name from URL slug e.g. "K525_DeepBlack" → "Deep Black"
-    const slug = productPath.includes('_') ? productPath.split('_').slice(1).join('_') : productPath;
-    const colorName = slug.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').trim();
-
-    // Duplicate check
-    if (allColorData.some(c => c.colorPath === productPath)) {
-      setImportStatus(`"${colorName}" is already added.`, 'error');
-      btn.disabled = false; btn.textContent = 'Import'; return;
-    }
-
-    // Add color
-    allColorData.push({ name: colorName, imgUrl, colorPath: productPath, checked: true });
-    renderColorPicker();
-    syncColorFields();
-
-    // Fill name/price/sizes only on the first color
-    if (allColorData.length === 1) {
-      const ogTitleM = html.match(/property="og:title"\s+content="([^"]+)"/) ||
-                       html.match(/content="([^"]+)"\s+property="og:title"/) ||
-                       html.match(/<title>([^<]+)<\/title>/);
-      if (ogTitleM && !document.getElementById('fName').value) {
-        document.getElementById('fName').value = ogTitleM[1].replace(/\s*\|\s*.*/g,'').replace(/&amp;/g,'&').trim();
-      }
-      const priceM = html.match(/\$([0-9]+\.[0-9]{2})\+/) || html.match(/Starting at \$([0-9.]+)/);
-      if (priceM && !document.getElementById('fCost').value)
-        document.getElementById('fCost').value = priceM[1];
-      const sizesM = html.match(/(?:Adult\s+)?Sizes:\s*([A-Z0-9]+)\s*[-–]\s*([A-Z0-9]+)/i);
-      if (sizesM && !document.getElementById('fSizes').value) {
-        const order = ['XS','YXS','YS','YM','YL','YXL','S','M','L','XL','2XL','XXL','3XL','4XL','5XL','6XL'];
-        const si = order.indexOf(sizesM[1]), ei = order.indexOf(sizesM[2]);
-        document.getElementById('fSizes').value =
-          (si !== -1 && ei !== -1) ? order.slice(si, ei+1).join(',') : sizesM[1]+','+sizesM[2];
-      }
-      if (imgUrl) { document.getElementById('fPhotoDisplay').value = imgUrl; updatePhotoPreview(); }
-    }
-
-    document.getElementById('importUrl').value = '';
-    document.getElementById('importUrl').focus();
-    const count = allColorData.length;
-    setImportStatus(
-      `✓ Added "${colorName}" (${count} color${count !== 1 ? 's' : ''} so far) — paste next color URL, or save when done.`,
-      'success'
-    );
-  } catch(e) {
-    setImportStatus('Error: ' + e.message, 'error');
-  }
-  btn.disabled = false; btn.textContent = 'Import';
-}
-
-function setImportStatus(msg, type) {
-  const el = document.getElementById('importStatus');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'import-status' + (type ? ' ' + type : '');
-}
+// Allow pressing Enter in the color name field to jump to URL field
+document.addEventListener('DOMContentLoaded', function() {
+  const nameEl = document.getElementById('newColorName');
+  const urlEl  = document.getElementById('newColorUrl');
+  if (nameEl) nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); urlEl.focus(); } });
+  if (urlEl)  urlEl.addEventListener('keydown',  e => { if (e.key === 'Enter') { e.preventDefault(); addColor(); } });
+});
 
 // ── LOAD ITEMS ────────────────────────────────────────────────────────
 async function loadItems() {
@@ -859,9 +610,9 @@ function renderTable() {
     const thumb = p.photo
       ? `<img class="item-thumb" src="${driveUrl(p.photo)}" alt="${p.name}" onerror="this.style.display='none'">`
       : `<div class="item-thumb-placeholder"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div>`;
-    return `<tr>
+    return `<tr class="${p.hidden ? 'row-hidden' : ''}">
       <td style="padding-left:1.5rem">${thumb}</td>
-      <td><strong>${p.name}</strong></td>
+      <td><strong>${p.name}</strong>${p.hidden ? ' <span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:600;vertical-align:middle">HIDDEN</span>' : ''}</td>
       <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">-</span>'}</td>
       <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">-</span>'}</td>
       <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '-'}</td>
@@ -869,6 +620,7 @@ function renderTable() {
       <td><strong>${p.cost ? '$'+parseFloat(p.cost).toFixed(2) : '-'}</strong></td>
       <td class="col-actions">
         <button class="edit-btn" onclick="openEditor(${i})">Edit</button>
+        <button class="hide-btn ${p.hidden ? 'hidden-active' : ''}" onclick="toggleHidden(${i})" title="${p.hidden ? 'Show item' : 'Hide item'}">${p.hidden ? '👁 Show' : '🚫 Hide'}</button>
         <button class="delete-btn" onclick="deleteItem(${i})">✕</button>
       </td>
     </tr>`;
@@ -876,6 +628,37 @@ function renderTable() {
 }
 
 // ── EDITOR ────────────────────────────────────────────────────────────
+// ── DRAFT SAVE ────────────────────────────────────────────────────────
+const DRAFT_KEY = 'adminItemDraft';
+
+function saveDraft() {
+  if (editingIdx !== null) return; // only draft new items
+  const draft = {
+    name:       document.getElementById('fName').value,
+    cost:       document.getElementById('fCost').value,
+    gender:     document.getElementById('fGender').value,
+    type:       document.getElementById('fType').value,
+    sizes:      document.getElementById('fSizes').value,
+    logoOpts:   document.getElementById('fLogoOptions').value,
+    logoImgs:   document.getElementById('fLogoImages').value,
+    placements: document.getElementById('fPlacements').value,
+    sizeChart:  document.getElementById('fSizeChart').value,
+    photo:      document.getElementById('fPhotoDisplay').value,
+    colors:     JSON.parse(JSON.stringify(allColorData)),
+    savedAt:    Date.now(),
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  const ind = document.getElementById('draftIndicator');
+  if (ind) { ind.textContent = '✓ Draft saved'; setTimeout(() => { if (ind) ind.textContent = ''; }, 2000); }
+}
+
+function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
+
+function hookDraftSaving() {
+  ['fName','fCost','fGender','fType','fSizes','fLogoOptions','fLogoImages','fPlacements','fSizeChart','fPhotoDisplay','newColorName','newColorUrl']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', saveDraft); });
+}
+
 function openEditor(idx) {
   editingIdx = idx;
   document.getElementById('modalTitle').textContent = idx === null ? 'Add item' : 'Edit item';
@@ -888,31 +671,54 @@ function openEditor(idx) {
   document.getElementById('fColors').value      = p.colors     || '';
   document.getElementById('fPhoto').value       = p.photo      || '';
   document.getElementById('fColorImages').value = p.colorImgs  || '';
-  // Load existing colors into picker
   const existingColors = (p.colors || '').split(',').map(c=>c.trim()).filter(Boolean);
-  const existingImgs = (p.colorImgs || '').split(',').map(u=>u.trim());
+  const existingImgs   = (p.colorImgs || '').split(',').map(u=>u.trim());
   if (existingColors.length) {
-    buildColorPicker(existingColors, existingImgs);
+    allColorData = existingColors.map((name, i) => ({ name, imgUrl: existingImgs[i] || '' }));
     document.getElementById('fPhotoDisplay').value = p.photo || '';
   } else {
     allColorData = [];
-    renderColorPicker();
     document.getElementById('fPhotoDisplay').value = p.photo || '';
     document.getElementById('fPhoto').value = p.photo || '';
   }
   document.getElementById('fLogoOptions').value = p.logoOpts   || '';
   document.getElementById('fLogoImages').value  = p.logoImgs   || '';
   document.getElementById('fPlacements').value  = p.placements || '';
-  document.getElementById('overlay').classList.add('open');
   document.getElementById('fSizeChart').value   = p.sizeChart  || '';
+
+  // For new items, check for a saved draft
+  if (idx === null) {
+    allColorData = [];
+    document.getElementById('fPhotoDisplay').value = '';
+    document.getElementById('fPhoto').value = '';
+    const draft = (() => { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch { return null; } })();
+    if (draft && (draft.name || (draft.colors && draft.colors.length))) {
+      const age = Math.round((Date.now() - draft.savedAt) / 60000);
+      const restore = confirm(`You have an unsaved draft from ${age < 1 ? 'just now' : age + ' minute' + (age !== 1 ? 's' : '') + ' ago'}.\n\nRestore it?`);
+      if (restore) {
+        document.getElementById('fName').value        = draft.name       || '';
+        document.getElementById('fCost').value        = draft.cost       || '';
+        document.getElementById('fGender').value      = draft.gender     || '';
+        document.getElementById('fType').value        = draft.type       || '';
+        document.getElementById('fSizes').value       = draft.sizes      || '';
+        document.getElementById('fLogoOptions').value = draft.logoOpts   || '';
+        document.getElementById('fLogoImages').value  = draft.logoImgs   || '';
+        document.getElementById('fPlacements').value  = draft.placements || '';
+        document.getElementById('fSizeChart').value   = draft.sizeChart  || '';
+        document.getElementById('fPhotoDisplay').value= draft.photo      || '';
+        document.getElementById('fPhoto').value       = draft.photo      || '';
+        if (draft.colors && draft.colors.length) allColorData = draft.colors;
+        updatePhotoPreview();
+      } else {
+        clearDraft();
+      }
+    }
+  }
+
+  renderColorList();
+  document.getElementById('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
-  // Reset color picker for new item
-  if (editingIdx === null) { allColorData = []; renderColorPicker(); document.getElementById('fPhotoDisplay').value = ''; document.getElementById('fPhoto').value = ''; }
-  // Reset import bar
-  document.getElementById('importUrl').value = '';
-  setImportStatus('Paste a product URL from S&S Activewear or SanMar — one URL imports ALL colors at once.', '');
-  const cntEl = document.getElementById('sanmarColorCount');
-  if (cntEl) cntEl.textContent = '';
+  hookDraftSaving();
 }
 
 // ── S&S IMPORT ────────────────────────────────────────────────────────
@@ -975,6 +781,7 @@ async function saveItem() {
   }
 
   btn.disabled = false; btn.textContent = 'Save item';
+  clearDraft();
   closeEditor();
   renderTable();
 }
@@ -993,6 +800,25 @@ async function deleteItem(idx) {
   } else {
     products.splice(idx, 1);
     showToast('Deleted locally! Connect Apps Script to update Sheet.', 'success');
+  }
+  renderTable();
+}
+
+async function toggleHidden(idx) {
+  const p = products[idx];
+  const nowHidden = !p.hidden;
+  products[idx].hidden = nowHidden;
+  if (ADMIN_SCRIPT_URL !== 'YOUR_ADMIN_APPS_SCRIPT_URL_HERE') {
+    try {
+      await fetch(ADMIN_SCRIPT_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', rowIdx: p.rowIdx, hidden: nowHidden ? 'true' : 'false' })
+      });
+      showToast(nowHidden ? `"${p.name}" hidden from catalog.` : `"${p.name}" is now visible.`, 'success');
+    } catch(e) { showToast('Could not update. Check Apps Script.', 'error'); }
+  } else {
+    showToast(nowHidden ? `"${p.name}" hidden (locally).` : `"${p.name}" visible (locally).`, 'success');
   }
   renderTable();
 }
@@ -1036,14 +862,14 @@ function toggleDark() {
   document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
-const _savedTheme = localStorage.getItem('theme');
-if (_savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-document.addEventListener('DOMContentLoaded', function() {
-  if (localStorage.getItem('theme') === 'dark') {
+(function() {
+  const saved = localStorage.getItem('theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
     const btn = document.getElementById('darkToggle');
     if (btn) btn.textContent = '☀️ Light';
   }
-});
+})();
 
 </script>
 </body>

@@ -447,9 +447,11 @@ async function loadProducts() {
         logoImages:       getVal(row, 'logo images').split(',').map(u=>u.trim()).filter(Boolean),
         placementOptions: getVal(row, 'placement options').split(',').map(p=>p.trim()).filter(Boolean),
         sizeChart:        getVal(row, 'size chart'),
+        hidden:           getVal(row, 'hidden').toLowerCase() === 'true',
       }));
 
     if (!products.length) { showState('No items found. Fill in the Item column in your Sheet.'); return; }
+    products = products.filter(p => !p.hidden);
     buildFilters();
     renderGrid();
   } catch(e) {
