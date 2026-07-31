@@ -808,12 +808,30 @@ async function toggleHidden(idx) {
   const p = products[idx];
   const nowHidden = !p.hidden;
   products[idx].hidden = nowHidden;
+
   if (ADMIN_SCRIPT_URL !== 'YOUR_ADMIN_APPS_SCRIPT_URL_HERE') {
     try {
+      // Send same payload format as saveItem with action:'update'
       await fetch(ADMIN_SCRIPT_URL, {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save', rowIdx: p.rowIdx, hidden: nowHidden ? 'true' : 'false' })
+        body: JSON.stringify({
+          action:     'update',
+          rowIdx:     p.rowIdx,
+          name:       p.name,
+          gender:     p.gender     || '',
+          type:       p.type       || '',
+          sizes:      p.sizes      || '',
+          colors:     p.colors     || '',
+          cost:       p.cost       || '',
+          photo:      p.photo      || '',
+          colorImgs:  p.colorImgs  || '',
+          logoOpts:   p.logoOpts   || '',
+          logoImgs:   p.logoImgs   || '',
+          placements: p.placements || '',
+          sizeChart:  p.sizeChart  || '',
+          hidden:     nowHidden ? 'true' : 'false',
+        })
       });
       showToast(nowHidden ? `"${p.name}" hidden from catalog.` : `"${p.name}" is now visible.`, 'success');
     } catch(e) { showToast('Could not update. Check Apps Script.', 'error'); }
