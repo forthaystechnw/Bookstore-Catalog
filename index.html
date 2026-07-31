@@ -954,6 +954,8 @@ loadProducts();
   } catch (e) {
     console.warn('Could not check fireworks setting:', e);
   }
+})();
+
 // ── DARK MODE ─────────────────────────────────────────────────────────
 function toggleDark() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -961,10 +963,8 @@ function toggleDark() {
   document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
-// Apply saved theme immediately (before page renders to avoid flash)
 const _savedTheme = localStorage.getItem('theme');
 if (_savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-// Update button text once DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
   if (localStorage.getItem('theme') === 'dark') {
     const btn = document.getElementById('darkToggle');
