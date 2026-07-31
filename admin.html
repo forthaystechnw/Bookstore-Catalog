@@ -1036,14 +1036,14 @@ function toggleDark() {
   document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
-(function() {
-  const saved = localStorage.getItem('theme') || 'light';
-  if (saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+const _savedTheme = localStorage.getItem('theme');
+if (_savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('theme') === 'dark') {
     const btn = document.getElementById('darkToggle');
     if (btn) btn.textContent = '☀️ Light';
   }
-})();
+});
 
 </script>
 </body>

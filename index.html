@@ -53,10 +53,6 @@
     font-family: var(--font-body); transition: border-color 0.15s;
   }
   .dark-toggle:hover { border-color: var(--primary); }
-    --radius: 10px;
-    --font-display: 'Barlow Condensed', sans-serif;
-    --font-body: 'Barlow', sans-serif;
-  }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -965,14 +961,16 @@ function toggleDark() {
   document.getElementById('darkToggle').textContent = isDark ? '🌙 Dark' : '☀️ Light';
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
-(function() {
-  const saved = localStorage.getItem('theme') || 'light';
-  if (saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+// Apply saved theme immediately (before page renders to avoid flash)
+const _savedTheme = localStorage.getItem('theme');
+if (_savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+// Update button text once DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('theme') === 'dark') {
     const btn = document.getElementById('darkToggle');
     if (btn) btn.textContent = '☀️ Light';
   }
-})();
+});
 </script>
 </body>
 </html>
