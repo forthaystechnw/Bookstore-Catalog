@@ -402,7 +402,6 @@
 // ── CONFIG ──────────────────────────────────────────────────────────
 const CATALOG_CSV = "https://docs.google.com/spreadsheets/d/1TrXu2AxiIOXjHAnccFb2NVdx9EQlMNTVUvfCXl00jmo/gviz/tq?tqx=out:json&sheet=Catalog%20Information";
 const SUBMIT_URL  = "https://script.google.com/macros/s/AKfycbxSKvjh9zyADWKbwp7sT1w5-S7ayLfcSDY621M9NMU64DOWCArXN1wO-A3zM0Wctngs/exec";
-const AUTH_TOKEN  = 'FHNW_TIGER_2025';
 // entry IDs: Full Name=2063443297, Email=2045502891, Dept=1211389596, Phone=649660626
 // Item=1149247074, Size=351137844, Color=1594216950, Logo=1332801338
 // CustomText=682453688, Qty=218563050, Placement=415477768, Notes=1728681119, EstPrice=2067392112
@@ -422,7 +421,7 @@ let activeSize = '';
 // ── LOAD PRODUCTS ────────────────────────────────────────────────────
 async function loadProducts() {
   try {
-    const res = await fetch(SUBMIT_URL + '?token=' + AUTH_TOKEN + '&action=getCatalog');
+    const res = await fetch(SUBMIT_URL + '?action=getCatalog');
     const json = await res.json();
     if (!json.rows || !json.rows.length) {
       showState('Catalog sheet is empty. Add items in Google Sheets and refresh.');
@@ -885,7 +884,7 @@ async function submitAll() {
     method: 'POST',
     mode:   'no-cors',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: AUTH_TOKEN, action: 'order',
+    body: JSON.stringify({ action: 'order',
       name,
       email,
       department: dept,
@@ -946,7 +945,7 @@ loadProducts();
 // loads the effect if it's turned on — nothing loads otherwise.
 (async function loadFireworksIfEnabled() {
   try {
-    const res = await fetch(SUBMIT_URL + '?token=' + AUTH_TOKEN + '&action=getSettings');
+    const res = await fetch(SUBMIT_URL + '?action=getSettings');
     const json = await res.json();
     if (json.fireworksEnabled) {
       const s = document.createElement('script');

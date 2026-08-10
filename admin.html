@@ -325,7 +325,6 @@ const CATALOG_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?
 
 // ── NOTE: To enable saving, deploy Apps Script (see bottom of file) ──
 const ADMIN_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSKvjh9zyADWKbwp7sT1w5-S7ayLfcSDY621M9NMU64DOWCArXN1wO-A3zM0Wctngs/exec';
-const AUTH_TOKEN = 'FHNW_TIGER_2025';
 // ────────────────────────────────────────────────────────────────────
 
 
@@ -345,7 +344,7 @@ async function doLogin() {
   // Validate credentials server-side via Apps Script — no credentials stored in HTML
   try {
     const pHash = await sha256(p);
-    const res = await fetch(ADMIN_SCRIPT_URL + '?token=' + AUTH_TOKEN + '&action=checkLogin&user=' + encodeURIComponent(u) + '&hash=' + pHash);
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=checkLogin&user=' + encodeURIComponent(u) + '&hash=' + pHash);
     const json = await res.json();
     if (json.ok) {
       document.getElementById('loginWrap').style.display = 'none';
@@ -383,7 +382,7 @@ if (sessionStorage.getItem('admin_auth') === '1') {
 async function loadFireworksState() {
   const toggle = document.getElementById('fireworksToggle');
   try {
-    const res = await fetch(ADMIN_SCRIPT_URL + '?token=' + AUTH_TOKEN + '&action=getSettings');
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=getSettings');
     const json = await res.json();
     toggle.checked = !!json.fireworksEnabled;
   } catch (e) {
@@ -400,7 +399,7 @@ async function setFireworksEnabled(enabled) {
     await fetch(ADMIN_SCRIPT_URL, {
       method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: AUTH_TOKEN, action: 'setFireworks', enabled })
+      body: JSON.stringify({ action: 'setFireworks', enabled })
     });
     showToast(enabled ? 'Fireworks turned ON for the shop page 🎆' : 'Fireworks turned off', 'success');
   } catch (e) {
@@ -415,7 +414,7 @@ async function setFireworksEnabled(enabled) {
 async function loadItems() {
   document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">Loading items…</td></tr>';
   try {
-    const res = await fetch(ADMIN_SCRIPT_URL + '?token=' + AUTH_TOKEN + '&action=getCatalog');
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=getCatalog');
     const json = await res.json();
     if (!json.rows || !json.rows.length) {
       document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found.</td></tr>';
@@ -562,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadItems() {
   document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">Loading items…</td></tr>';
   try {
-    const res = await fetch(ADMIN_SCRIPT_URL + '?token=' + AUTH_TOKEN + '&action=getCatalog');
+    const res = await fetch(ADMIN_SCRIPT_URL + '?action=getCatalog');
     const json = await res.json();
     if (!json.rows || !json.rows.length) {
       document.getElementById('itemsBody').innerHTML = '<tr class="loading-row"><td colspan="8">No items found.</td></tr>';
@@ -921,7 +920,7 @@ async function deleteItem(idx) {
       await fetch(ADMIN_SCRIPT_URL, {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: AUTH_TOKEN, action: 'delete', rowIdx: products[idx].rowIdx })
+        body: JSON.stringify({ action: 'delete', rowIdx: products[idx].rowIdx })
       });
       showToast('Item deleted!', 'success');
     } catch(e) { showToast('Delete failed.', 'error'); }
@@ -943,7 +942,7 @@ async function toggleHidden(idx) {
       await fetch(ADMIN_SCRIPT_URL, {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: AUTH_TOKEN, action: 'update',
+        body: JSON.stringify({ action: 'update',
           rowIdx:     p.rowIdx,
           name:       p.name,
           gender:     p.gender     || '',
