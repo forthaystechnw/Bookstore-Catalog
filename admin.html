@@ -233,7 +233,9 @@
           <input class="form-input" type="text" id="fName" placeholder="e.g. Staff Polo Shirt">
         </div>
         <div class="form-group">
-          <div class="form-label">Cost ($)</div>
+          <div class="form-label">Product number</div>
+          <input class="form-input" type="text" id="fProductNumber" placeholder="e.g. J317">
+        </div>
           <input class="form-input" type="number" id="fCost" placeholder="e.g. 28.00" step="0.01" min="0">
         </div>
         <div class="form-group">
@@ -429,6 +431,7 @@ async function loadItems() {
       .map((row, i) => ({
         rowIdx:     i + 2,
         name:       getVal(row, 'item'),
+        productNumber: getVal(row, 'product number'),
         gender:     getVal(row, 'gender'),
         type:       getVal(row, 'type'),
         sizes:      getVal(row, 'size options'),
@@ -577,6 +580,7 @@ async function loadItems() {
         rowIdx:     i + 2,
         name:       getVal(row, 'item'),
         gender:     getVal(row, 'gender'),
+        productNumber: getVal(row, 'product number'),
         type:       getVal(row, 'type'),
         sizes:      getVal(row, 'size options'),
         colors:     getVal(row, 'color options'),
@@ -635,7 +639,7 @@ function renderTable() {
       : `<div class="item-thumb-placeholder"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div>`;
     return `<tr class="${p.hidden ? 'row-hidden' : ''}">
       <td style="padding-left:1.5rem">${thumb}</td>
-      <td><strong>${p.name}</strong>${p.hidden ? ' <span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:600;vertical-align:middle">HIDDEN</span>' : ''}</td>
+      <td><strong>${p.name}</strong>${p.hidden ? ' <span style="font-size:10px;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:600;vertical-align:middle">HIDDEN</span>' : ''}${p.productNumber ? `<br><span style="font-size:11px;color:var(--muted);font-weight:400">#${p.productNumber}</span>` : ''}</td>
       <td class="hide-mobile">${p.gender ? `<span class="tag">${p.gender}</span>` : '<span style="color:var(--muted)">-</span>'}</td>
       <td class="hide-mobile">${p.type   ? `<span class="tag">${p.type}</span>`   : '<span style="color:var(--muted)">-</span>'}</td>
       <td class="hide-mobile" style="color:var(--muted);font-size:12px">${p.colors || '-'}</td>
@@ -754,6 +758,8 @@ function saveDraft() {
   if (editingIdx !== null) return; // only draft new items
   const draft = {
     name:       document.getElementById('fName').value,
+    productNumber: document.getElementById('fProductNumber').value,
+    productNumber: document.getElementById('fProductNumber').value.trim(),
     cost:       document.getElementById('fCost').value,
     gender:     document.getElementById('fGender').value,
     type:       document.getElementById('fType').value,
@@ -784,6 +790,7 @@ function openEditor(idx) {
   document.getElementById('modalTitle').textContent = idx === null ? 'Add item' : 'Edit item';
   const p = idx !== null ? products[idx] : {};
   document.getElementById('fName').value        = p.name       || '';
+  document.getElementById('fProductNumber').value = p.productNumber || '';
   document.getElementById('fCost').value        = p.cost       || '';
   document.getElementById('fGender').value      = p.gender     || '';
   document.getElementById('fType').value        = p.type       || '';
@@ -823,6 +830,7 @@ function openEditor(idx) {
       const restore = confirm(`You have an unsaved draft from ${age < 1 ? 'just now' : age + ' minute' + (age !== 1 ? 's' : '') + ' ago'}.\n\nRestore it?`);
       if (restore) {
         document.getElementById('fName').value        = draft.name       || '';
+        document.getElementById('fProductNumber').value = draft.productNumber || '';
         document.getElementById('fCost').value        = draft.cost       || '';
         document.getElementById('fGender').value      = draft.gender     || '';
         document.getElementById('fType').value        = draft.type       || '';

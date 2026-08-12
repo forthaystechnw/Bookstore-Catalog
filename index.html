@@ -436,6 +436,7 @@ async function loadProducts() {
       .map((row, i) => ({
         id:               i,
         name:             getVal(row, 'item'),
+        productNumber:    getVal(row, 'product number'),
         gender:           getVal(row, 'gender'),
         type:             getVal(row, 'type'),
         sizes:            getVal(row, 'size options').split(',').map(s=>s.trim()).filter(Boolean),
@@ -619,6 +620,7 @@ function renderGrid() {
       <div class="card-body">
         ${(p.gender||p.type) ? `<div class="card-tag">${[p.gender,p.type].filter(Boolean).join(' · ')}</div>` : ''}
         <div class="card-name">${p.name}</div>
+        ${p.productNumber ? `<div style="font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--font-body)">#${p.productNumber}</div>` : ''}
         <div class="card-sub">${[p.colors.length?p.colors.length+' colors':'', p.sizes.length?'Sizes: '+p.sizes.join(', '):'One size'].filter(Boolean).join(' · ')}</div>
         <div class="card-footer">
           <div><div class="est-label">Est. from</div><div class="est-price">${p.cost?'$'+p.cost.toFixed(2):'Ask us'}</div></div>
@@ -640,7 +642,7 @@ function setSort(mode, btn) {
 function openModal(id) {
   currentProduct = products.find(p=>p.id===id);
   document.getElementById('modalTitle').textContent = currentProduct.name;
-  document.getElementById('modalSub').textContent = `Est. from ${currentProduct.cost?'$'+currentProduct.cost.toFixed(2):'TBD'} · payment collected at the bookstore`;
+  document.getElementById('modalSub').textContent = `${currentProduct.productNumber ? '#'+currentProduct.productNumber+' · ' : ''}Est. from ${currentProduct.cost?'$'+currentProduct.cost.toFixed(2):'TBD'} · payment collected at the bookstore`;
 
   // Colors
   const colorGrp = document.getElementById('colorGroup');
@@ -739,6 +741,7 @@ function addAnotherSize() {
     id:        Date.now(),
     productId: currentProduct.id,
     name:      currentProduct.name,
+    productNumber: currentProduct.productNumber || '',
     photo:     currentProduct.photo,
     cost:      currentProduct.cost,
     size:      sizeGrp.style.display!=='none' ? document.getElementById('fsize').value : 'N/A',
@@ -780,6 +783,7 @@ function addToCart() {
     id:        Date.now(),
     productId: currentProduct.id,
     name:      currentProduct.name,
+    productNumber: currentProduct.productNumber || '',
     photo:     currentProduct.photo,
     cost:      currentProduct.cost,
     size:      sizeGrp.style.display!=='none' ? document.getElementById('fsize').value : 'N/A',
@@ -852,6 +856,7 @@ function renderCart() {
       ${imgHtml}
       <div class="cart-item-info">
         <div class="cart-item-name">${item.name}</div>
+        ${item.productNumber ? `<div style="font-size:11px;color:var(--muted)">#${item.productNumber}</div>` : ''}
         <div class="cart-item-detail">${details}</div>
         ${item.notes ? `<div class="cart-item-detail" style="margin-top:2px;font-style:italic">${item.notes}</div>` : ''}
       </div>
@@ -889,15 +894,16 @@ async function submitAll() {
       email,
       department: dept,
       phone,
-      item:       item.name,
-      size:       item.size,
-      color:      item.color,
-      logo:       item.logo,
-      customText: item.customText,
-      placement:  item.placement,
-      qty:        item.qty,
-      notes:      item.notes,
-      estPrice:   item.est,
+      item:          item.name,
+      productNumber: item.productNumber || '',
+      size:          item.size,
+      color:         item.color,
+      logo:          item.logo,
+      customText:    item.customText,
+      placement:     item.placement,
+      qty:           item.qty,
+      notes:         item.notes,
+      estPrice:      item.est,
     })
   }).catch(err => console.warn('Submission error:', err)));
 
