@@ -272,7 +272,7 @@
         <div class="form-group full">
           <div class="form-label">Main photo URL <span style="font-weight:400;text-transform:none;color:var(--muted)">(auto-filled from first color - or paste your own)</span></div>
           <div style="display:flex;gap:8px;align-items:center">
-            <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value;updatePhotoPreview()" style="flex:1">
+            <input class="form-input" type="text" id="fPhotoDisplay" placeholder="Auto-filled from import, or paste a URL" oninput="document.getElementById('fPhoto').value=this.value;updatePhotoPreview()" onpaste="setTimeout(()=>{document.getElementById('fPhoto').value=this.value;updatePhotoPreview();},0)" style="flex:1">
             <img id="photoPreviewThumb" src="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;background:var(--light);display:none;border:1px solid var(--border)" onerror="this.style.display='none'">
           </div>
           <div class="form-hint">Shown on the catalog card. If left blank, first color image is used.</div>
@@ -579,11 +579,15 @@ function removeColor(i) {
 function syncColorFields() {
   document.getElementById('fColors').value = allColorData.map(c => c.name).join(',');
   document.getElementById('fColorImages').value = allColorData.map(c => c.imgUrl).join(',');
-  const firstImg = allColorData[0]?.imgUrl || '';
-  if (!document.getElementById('fPhotoDisplay').value && firstImg) {
-    document.getElementById('fPhotoDisplay').value = firstImg;
-    document.getElementById('fPhoto').value = firstImg;
-    updatePhotoPreview();
+  // Only auto-fill photo from first color if the field is completely empty
+  const photoDisplay = document.getElementById('fPhotoDisplay');
+  if (!photoDisplay.value.trim()) {
+    const firstImg = allColorData[0]?.imgUrl || '';
+    if (firstImg) {
+      photoDisplay.value = firstImg;
+      document.getElementById('fPhoto').value = firstImg;
+      updatePhotoPreview();
+    }
   }
 }
 
@@ -916,6 +920,10 @@ async function saveItem() {
   // Always sync from allColorData directly — avoids stale hidden field values
   syncColorFields();
 
+    // Sync fPhoto from fPhotoDisplay right before save to ensure they match
+    const photoUrl = document.getElementById('fPhotoDisplay').value.trim();
+    document.getElementById('fPhoto').value = photoUrl;
+
   const item = {
     name,
     productNumber: document.getElementById('fProductNumber').value.trim(),
@@ -924,7 +932,7 @@ async function saveItem() {
     sizes:      document.getElementById('fSizes').value.trim(),
     colors:     allColorData.map(c => c.name).join(','),
     cost:       document.getElementById('fCost').value.trim(),
-    photo:      cleanDriveUrl(document.getElementById('fPhoto').value.trim()),
+    photo:      cleanDriveUrl(photoUrl),
     colorImgs:  allColorData.map(c => c.imgUrl).join(','),
     logoOpts:   document.getElementById('fLogoOptions').value.trim(),
     logoImgs:   cleanDriveUrls(document.getElementById('fLogoImages').value.trim()),
