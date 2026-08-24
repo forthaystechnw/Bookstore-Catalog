@@ -944,6 +944,33 @@ async function saveItem() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
       });
+      // Update local products array immediately so table reflects changes right away
+      if (editingIdx !== null) {
+        products[editingIdx] = {
+          ...products[editingIdx],
+          name:          item.name,
+          productNumber: item.productNumber,
+          gender:        item.gender,
+          type:          item.type,
+          sizes:         item.sizes.split(',').map(s=>s.trim()).filter(Boolean),
+          colors:        item.colors.split(',').map(c=>c.trim()).filter(Boolean),
+          cost:          parseFloat(item.cost) || 0,
+          photo:         item.photo,
+          colorImgs:     item.colorImgs,
+          logoOpts:      item.logoOpts,
+          logoImgs:      item.logoImgs,
+          placements:    item.placements,
+          sizeChart:     item.sizeChart,
+          hidden:        products[editingIdx].hidden,
+        };
+      } else {
+        products.push({ ...item, id: products.length, rowIdx: products.length + 2,
+          sizes:  item.sizes.split(',').map(s=>s.trim()).filter(Boolean),
+          colors: item.colors.split(',').map(c=>c.trim()).filter(Boolean),
+          cost:   parseFloat(item.cost) || 0,
+          hidden: false,
+        });
+      }
       showToast(editingIdx !== null ? 'Item updated!' : 'Item added!', 'success');
     } catch(e) {
       showToast('Save failed. Check your Apps Script URL.', 'error');
