@@ -913,15 +913,19 @@ async function saveItem() {
   const name = document.getElementById('fName').value.trim();
   if (!name) { alert('Item name is required.'); return; }
 
+  // Always sync from allColorData directly — avoids stale hidden field values
+  syncColorFields();
+
   const item = {
     name,
+    productNumber: document.getElementById('fProductNumber').value.trim(),
     gender:     document.getElementById('fGender').value.trim(),
     type:       document.getElementById('fType').value.trim(),
     sizes:      document.getElementById('fSizes').value.trim(),
-    colors:     document.getElementById('fColors').value.trim(),
+    colors:     allColorData.map(c => c.name).join(','),
     cost:       document.getElementById('fCost').value.trim(),
     photo:      cleanDriveUrl(document.getElementById('fPhoto').value.trim()),
-    colorImgs:  cleanDriveUrls(document.getElementById('fColorImages').value.trim()),
+    colorImgs:  allColorData.map(c => c.imgUrl).join(','),
     logoOpts:   document.getElementById('fLogoOptions').value.trim(),
     logoImgs:   cleanDriveUrls(document.getElementById('fLogoImages').value.trim()),
     placements: document.getElementById('fPlacements').value.trim(),
